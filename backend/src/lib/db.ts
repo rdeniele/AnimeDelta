@@ -10,6 +10,8 @@ export const db =
     adapter: new PrismaPg({
       // Strip sslmode so pg doesn't override our explicit ssl option below.
       connectionString: env.databaseUrl.replace(/([?&])sslmode=[^&]*&?/, "$1").replace(/[?&]$/, ""),
+      // Serverless: one connection per instance; the Supabase pooler multiplexes them.
+      ...(process.env.VERCEL ? { max: 1 } : {}),
       ...(env.databaseSsl ? { ssl: { rejectUnauthorized: false } } : {}),
     }),
   });

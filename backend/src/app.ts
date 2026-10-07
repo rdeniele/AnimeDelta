@@ -7,6 +7,7 @@ import { errorHandler, HttpError, optionalAuth } from "./lib/http.js";
 import { mockVtt } from "./providers/mock/mockProviders.js";
 import { admin } from "./routes/admin.js";
 import { catalog } from "./routes/catalog.js";
+import { cron } from "./routes/cron.js";
 import { user } from "./routes/user.js";
 
 export function createApp() {
@@ -33,6 +34,7 @@ export function createApp() {
     res.type("text/vtt").send(mockVtt(lang));
   });
 
+  app.use("/api", cron);
   app.use("/api/admin", admin);
   app.use("/api", optionalAuth, catalog, user);
 

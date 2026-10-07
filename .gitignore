@@ -8,3 +8,5 @@ dist/
 backend/src/generated/
 apk/
 build.log
+
+api/index.js

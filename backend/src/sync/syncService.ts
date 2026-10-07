@@ -9,6 +9,12 @@ export interface SyncStats {
   errors: string[];
 }
 
+export interface SyncOptions {
+  /** Epoch ms after which a sync step stops early (used by serverless cron to stay in its time limit). */
+  deadline?: number;
+}
+const expired = (o?: SyncOptions) => o?.deadline != null && Date.now() > o.deadline;
+
 const emptyStats = (): SyncStats => ({ animeAdded: 0, animeUpdated: 0, episodesAdded: 0, errors: [] });
 
 function animeData(a: AnimeDTO) {
@@ -56,9 +62,9 @@ export async function upsertAnime(a: AnimeDTO): Promise<{ id: string; created: b
 }
 
 /** Discover new anime from the provider catalog. */
-export async function syncAnime(provider: MetadataProvider = getMetadataProvider()): Promise<SyncStats> {
+export async function syncAnime(provider: MetadataProvider = getMetadataProvider(), opts?: SyncOptions): Promise<SyncStats> {
   const stats = emptyStats();
-  for (let page = 1; page < 50; page++) {
+  for (let page = 1; page < 50 && !expired(opts); page++) {
     try {
       const { items, hasMore } = await provider.listAnime(page);
       for (const a of items) {
@@ -76,10 +82,11 @@ export async function syncAnime(provider: MetadataProvider = getMetadataProvider
 }
 
 /** Refresh seasons (cours) for known anime. */
-export async function syncSeasons(provider: MetadataProvider = getMetadataProvider()): Promise<SyncStats> {
+export async function syncSeasons(provider: MetadataProvider = getMetadataProvider(), opts?: SyncOptions): Promise<SyncStats> {
   const stats = emptyStats();
   const list = await db.anime.findMany({ where: { externalId: { not: null } }, select: { id: true, externalId: true } });
   for (const a of list) {
+    if (expired(opts)) break;
     try {
       for (const s of await provider.getSeasons(a.externalId!)) {
         await db.season.upsert({
@@ -96,13 +103,14 @@ export async function syncSeasons(provider: MetadataProvider = getMetadataProvid
 }
 
 /** Add new episodes and refresh release dates. Skips finished anime that already have all episodes. */
-export async function syncEpisodes(provider: MetadataProvider = getMetadataProvider()): Promise<SyncStats> {
+export async function syncEpisodes(provider: MetadataProvider = getMetadataProvider(), opts?: SyncOptions): Promise<SyncStats> {
   const stats = emptyStats();
   const list = await db.anime.findMany({
     where: { externalId: { not: null } },
     select: { id: true, externalId: true, status: true, _count: { select: { episodes: true } }, episodeCount: true },
   });
   for (const a of list) {
+    if (expired(opts)) break;
     const complete = a.status === "FINISHED" && a.episodeCount != null && a._count.episodes >= a.episodeCount;
     if (complete) continue;
     try {
@@ -144,13 +152,14 @@ export async function syncEpisodes(provider: MetadataProvider = getMetadataProvi
 }
 
 /** Refresh ratings, genres, status and other metadata for anime that are still changing. */
-export async function syncMetadata(provider: MetadataProvider = getMetadataProvider()): Promise<SyncStats> {
+export async function syncMetadata(provider: MetadataProvider = getMetadataProvider(), opts?: SyncOptions): Promise<SyncStats> {
   const stats = emptyStats();
   const list = await db.anime.findMany({
     where: { externalId: { not: null }, status: { in: ["AIRING", "UPCOMING"] } },
     select: { externalId: true },
   });
   for (const a of list) {
+    if (expired(opts)) break;
     try {
       const fresh = await provider.getAnime(a.externalId!);
       if (!fresh) continue;
@@ -164,12 +173,12 @@ export async function syncMetadata(provider: MetadataProvider = getMetadataProvi
 }
 
 /** Runs the whole pipeline and records a SyncRun for the admin API. */
-export async function runFullSync(provider: MetadataProvider = getMetadataProvider()): Promise<SyncStats> {
+export async function runFullSync(provider: MetadataProvider = getMetadataProvider(), opts?: SyncOptions): Promise<SyncStats> {
   const run = await db.syncRun.create({ data: { provider: provider.name } });
   const total = emptyStats();
   for (const step of [syncAnime, syncSeasons, syncEpisodes, syncMetadata]) {
     try {
-      const s = await step(provider);
+      const s = await step(provider, opts);
       total.animeAdded += s.animeAdded;
       total.animeUpdated += s.animeUpdated;
       total.episodesAdded += s.episodesAdded;

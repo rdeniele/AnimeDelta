@@ -18,5 +18,6 @@ export const env = {
   videoProvider: str("VIDEO_PROVIDER", "mock"),
   videoProviderUrl: str("VIDEO_PROVIDER_URL"),
   videoProviderApiKey: str("VIDEO_PROVIDER_API_KEY"),
+  cronSecret: str("CRON_SECRET"),
   syncCron: str("SYNC_CRON", "0 */6 * * *"),
 };
