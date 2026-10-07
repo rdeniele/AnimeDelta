@@ -1,0 +1,41 @@
+{
+  "series": [
+    {
+      "title": "My First Series",
+      "description": "Anything you want shown on the detail page.",
+      "genres": ["Action", "Fantasy"],
+      "year": 2024,
+      "season": "FALL",
+      "type": "TV",
+      "status": "FINISHED",
+      "studio": "Channel or studio name",
+      "cover": "https://example.com/poster-2x3.jpg",
+      "banner": "https://example.com/banner-16x9.jpg",
+      "episodes": [
+        "https://www.youtube.com/watch?v=VIDEO_ID_1",
+        "https://www.youtube.com/watch?v=VIDEO_ID_2",
+        {
+          "title": "Episode 3: A custom title",
+          "url": "https://www.youtube.com/watch?v=VIDEO_ID_3"
+        }
+      ]
+    },
+    {
+      "title": "My Own Files",
+      "description": "Direct links to video files you host (MP4 or HLS .m3u8) with optional WebVTT subtitles.",
+      "genres": ["Drama"],
+      "cover": "https://example.com/poster2.jpg",
+      "episodes": [
+        {
+          "title": "Episode 1",
+          "url": "https://cdn.example.com/my-show/ep1.mp4",
+          "duration": 24,
+          "subtitles": [
+            { "language": "en", "label": "English", "url": "https://cdn.example.com/my-show/ep1.en.vtt" },
+            { "language": "ja", "label": "Japanese", "url": "https://cdn.example.com/my-show/ep1.ja.vtt" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -49,3 +49,17 @@ Only public variables are used in the app; database and provider secrets stay on
 
 ## Checks
 `npx tsc --noEmit` in both folders; `npm run lint` in `mobile`.
+
+## Adding your own content (links)
+
+1. `cd backend && cp catalog/library.example.json catalog/library.json` (this file is git-ignored)
+2. Edit `catalog/library.json`: one entry per series with a title and a list of episode links.
+   Links can be YouTube watch URLs (embeddable videos from channels that allow it), direct
+   `.mp4`/`.m3u8` URLs you host, with optional WebVTT subtitle URLs per episode.
+3. `npm run catalog:check` validates the file. `npm run catalog:import` writes it to the database
+   (safe to re-run; the file is the source of truth for links).
+4. Set on Vercel and in `backend/.env.local`: `VIDEO_PROVIDER=library` and `METADATA_PROVIDER=none`
+   (so the scheduled sync doesn't re-add placeholder or remote data). Run `npm run db:clear-mock`
+   once to delete the placeholder catalog.
+
+Only add links to media you own or are allowed to use.

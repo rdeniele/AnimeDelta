@@ -9,3 +9,6 @@ backend/src/generated/
 apk/
 build.log
 
+
+# Your private catalog (links to media you may use). Copy catalog/library.example.json to start.
+backend/catalog/library.json

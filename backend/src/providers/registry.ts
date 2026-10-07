@@ -1,5 +1,6 @@
 import { env } from "../lib/env.js";
 import { JikanMetadataProvider } from "./jikan/jikanProvider.js";
+import { EmptyMetadataProvider } from "./empty/emptyProvider.js";
 import { YouTubeMetadataProvider } from "./youtube/youtubeProvider.js";
 import { LibrarySubtitleProvider, LibraryVideoProvider } from "./library/libraryProviders.js";
 import { MockMetadataProvider, MockSubtitleProvider, MockVideoProvider } from "./mock/mockProviders.js";
@@ -13,6 +14,8 @@ export function getMetadataProvider(): MetadataProvider {
   switch (env.metadataProvider) {
     case "jikan":
       return new JikanMetadataProvider();
+    case "none":
+      return new EmptyMetadataProvider(); // catalog comes only from catalog/library.json
     case "youtube":
       return new YouTubeMetadataProvider();
     default:

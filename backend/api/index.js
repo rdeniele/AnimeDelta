@@ -451,6 +451,29 @@ var JikanMetadataProvider = class {
   }
 };
 
+// src/providers/empty/emptyProvider.ts
+var EmptyMetadataProvider = class {
+  name = "none";
+  async search() {
+    return [];
+  }
+  async getAnime() {
+    return null;
+  }
+  async getEpisodes() {
+    return [];
+  }
+  async getSeasons() {
+    return [];
+  }
+  async getSeasonAnime() {
+    return [];
+  }
+  async listAnime() {
+    return { items: [], hasMore: false };
+  }
+};
+
 // src/providers/youtube/youtubeProvider.ts
 var API = "https://www.googleapis.com/youtube/v3";
 async function yt(path2, params) {
@@ -621,6 +644,9 @@ function getMetadataProvider() {
   switch (env.metadataProvider) {
     case "jikan":
       return new JikanMetadataProvider();
+    case "none":
+      return new EmptyMetadataProvider();
+    // catalog comes only from catalog/library.json
     case "youtube":
       return new YouTubeMetadataProvider();
     default:
