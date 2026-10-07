@@ -138,10 +138,16 @@ export async function syncEpisodes(provider: MetadataProvider = getMetadataProvi
           releaseDate: e.releaseDate ?? null,
           duration: e.duration ?? null,
         };
+        let episodeId = found?.id;
         if (found) await db.episode.update({ where: { id: found.id }, data });
         else {
-          await db.episode.create({ data: { ...data, animeId: a.id, seasonId, episodeNumber: e.episodeNumber } });
+          episodeId = (await db.episode.create({ data: { ...data, animeId: a.id, seasonId, episodeNumber: e.episodeNumber } })).id;
           stats.episodesAdded++;
+        }
+        // Providers that supply a playable URL (official embeds) get it registered as a media source.
+        if (e.mediaUrl && episodeId) {
+          const has = await db.mediaSource.findFirst({ where: { episodeId, url: e.mediaUrl }, select: { id: true } });
+          if (!has) await db.mediaSource.create({ data: { episodeId, url: e.mediaUrl, quality: "auto", mimeType: "video/youtube" } });
         }
       }
     } catch (err) {

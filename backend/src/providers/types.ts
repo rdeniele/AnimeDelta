@@ -39,6 +39,8 @@ export interface EpisodeDTO {
   thumbnail?: string | null;
   releaseDate?: Date | null;
   duration?: number | null;
+  /** Optional playable URL registered as a media source (e.g. an official YouTube watch URL). */
+  mediaUrl?: string | null;
 }
 
 export interface MetadataProvider {

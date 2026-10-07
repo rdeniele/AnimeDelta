@@ -18,6 +18,11 @@ export const env = {
   videoProvider: str("VIDEO_PROVIDER", "mock"),
   videoProviderUrl: str("VIDEO_PROVIDER_URL"),
   videoProviderApiKey: str("VIDEO_PROVIDER_API_KEY"),
+  youtubeApiKey: str("YOUTUBE_API_KEY"),
+  youtubeChannels: str("YOUTUBE_CHANNELS")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
   cronSecret: str("CRON_SECRET"),
   syncCron: str("SYNC_CRON", "0 */6 * * *"),
 };

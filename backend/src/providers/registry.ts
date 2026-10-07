@@ -1,5 +1,6 @@
 import { env } from "../lib/env.js";
 import { JikanMetadataProvider } from "./jikan/jikanProvider.js";
+import { YouTubeMetadataProvider } from "./youtube/youtubeProvider.js";
 import { LibrarySubtitleProvider, LibraryVideoProvider } from "./library/libraryProviders.js";
 import { MockMetadataProvider, MockSubtitleProvider, MockVideoProvider } from "./mock/mockProviders.js";
 import type { MetadataProvider, SubtitleProvider, VideoProvider } from "./types.js";
@@ -12,6 +13,8 @@ export function getMetadataProvider(): MetadataProvider {
   switch (env.metadataProvider) {
     case "jikan":
       return new JikanMetadataProvider();
+    case "youtube":
+      return new YouTubeMetadataProvider();
     default:
       return new MockMetadataProvider();
   }

@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import { Button } from "@/components/common/Button";
 import { EmptyState, ErrorState } from "@/components/common/States";
 import { VideoPlayer } from "@/components/player/VideoPlayer";
+import { YouTubeEpisodePlayer } from "@/components/player/YouTubeEpisodePlayer";
 import { usePlayback } from "@/hooks/queries";
 import { useUi } from "@/store/ui";
 
@@ -46,5 +47,6 @@ export default function PlayerScreen() {
       </View>
     );
   }
+  if (q.data.video.mimeType === "video/youtube") return <YouTubeEpisodePlayer key={q.data.episode.id} data={q.data} />;
   return <VideoPlayer key={q.data.episode.id} data={q.data} />;
 }
