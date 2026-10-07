@@ -1,9 +1,24 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "outputDirectory": "public",
-  "functions": { "api/index.js": { "maxDuration": 300 } },
-  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }],
-  "crons": [{ "path": "/api/cron/sync", "schedule": "0 3 * * *" }]
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 300
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/sync",
+      "schedule": "0 3 * * *"
+    }
+  ]
 }
