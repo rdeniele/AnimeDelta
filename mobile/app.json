@@ -50,15 +50,7 @@
           "supportsPictureInPicture": true
         }
       ],
-      "expo-notifications",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true
-          }
-        }
-      ]
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": false,
