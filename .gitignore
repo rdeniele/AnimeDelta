@@ -9,4 +9,3 @@ backend/src/generated/
 apk/
 build.log
 
-backend/api/index.js
