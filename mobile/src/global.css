@@ -1,0 +1,29 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/* AnimeDelta design tokens: dark by default, light via prefers-color-scheme. */
+@theme {
+  --color-bg: #0a0612;
+  --color-surface: #150d24;
+  --color-surface2: #1f1535;
+  --color-line: #2c2047;
+  --color-fg: #f5f2ff;
+  --color-muted: #a99fc4;
+  --color-primary: #8b5cf6;
+  --color-accent: #38bdf8;
+  --color-danger: #f43f5e;
+  --color-success: #34d399;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg: #f7f4ff;
+    --color-surface: #ffffff;
+    --color-surface2: #ece6fb;
+    --color-line: #d9cff2;
+    --color-fg: #170f2b;
+    --color-muted: #6a5e8c;
+  }
+}

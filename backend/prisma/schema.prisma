@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AnimeStatus {
+  AIRING
+  FINISHED
+  UPCOMING
+  CANCELLED
+}
+
+enum AnimeType {
+  TV
+  MOVIE
+  OVA
+  ONA
+  SPECIAL
+}
+
+enum AnimeSeason {
+  WINTER
+  SPRING
+  SUMMER
+  FALL
+}
+
+enum ListStatus {
+  WATCHING
+  PLAN_TO_WATCH
+  COMPLETED
+  DROPPED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  username      String
+  email         String?  @unique
+  passwordHash  String?
+  googleId      String?  @unique
+  tokenHash     String?  @unique
+  isAdmin       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  progress      WatchProgress[]
+  watchlist     Watchlist[]
+  searchHistory SearchHistory[]
+  pushTokens    PushToken[]
+  notifPrefs    NotificationPrefs?
+}
+
+model Anime {
+  id            String       @id @default(cuid())
+  externalId    String?      @unique
+  title         String
+  englishTitle  String?
+  nativeTitle   String?
+  synonyms      String[]     @default([])
+  description   String       @default("")
+  coverImage    String?
+  bannerImage   String?
+  year          Int?
+  month         Int?
+  season        AnimeSeason?
+  status        AnimeStatus  @default(FINISHED)
+  type          AnimeType    @default(TV)
+  rating        Float?
+  popularity    Int          @default(0)
+  duration      Int?
+  episodeCount  Int?
+  studio        String?
+  startDate     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  genres        AnimeGenre[]
+  seasons       Season[]
+  episodes      Episode[]
+  progress      WatchProgress[]
+  watchlist     Watchlist[]
+
+  @@index([title])
+  @@index([year])
+  @@index([season])
+  @@index([status])
+  @@index([type])
+  @@index([rating])
+  @@index([popularity])
+  @@index([startDate])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([year, season])
+}
+
+model Genre {
+  id    Int          @id @default(autoincrement())
+  name  String       @unique
+  anime AnimeGenre[]
+}
+
+model AnimeGenre {
+  animeId String
+  genreId Int
+  anime   Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, genreId])
+  @@index([genreId])
+}
+
+model Season {
+  id       String    @id @default(cuid())
+  animeId  String
+  number   Int
+  title    String
+  anime    Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  episodes Episode[]
+
+  @@unique([animeId, number])
+}
+
+model Episode {
+  id            String    @id @default(cuid())
+  animeId       String
+  seasonId      String?
+  episodeNumber Int
+  title         String
+  description   String    @default("")
+  thumbnail     String?
+  releaseDate   DateTime?
+  duration      Int?
+  createdAt     DateTime  @default(now())
+
+  anime     Anime         @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  season    Season?       @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  subtitles Subtitle[]
+  sources   MediaSource[]
+  progress  WatchProgress[]
+
+  @@unique([animeId, seasonId, episodeNumber])
+  @@index([releaseDate])
+  @@index([animeId])
+  @@index([createdAt])
+}
+
+model Subtitle {
+  id        String  @id @default(cuid())
+  episodeId String
+  language  String
+  label     String
+  url       String
+  episode   Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId])
+}
+
+// Media sources the owner has added manually and has rights to use.
+model MediaSource {
+  id        String   @id @default(cuid())
+  episodeId String
+  url       String
+  quality   String   @default("auto")
+  mimeType  String?
+  note      String?
+  createdAt DateTime @default(now())
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId])
+}
+
+model WatchProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  animeId         String
+  episodeId       String
+  progressSeconds Int      @default(0)
+  durationSeconds Int      @default(0)
+  completed       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime   Anime   @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId])
+  @@index([userId, updatedAt])
+}
+
+model Watchlist {
+  id        String     @id @default(cuid())
+  userId    String
+  animeId   String
+  status    ListStatus @default(PLAN_TO_WATCH)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, animeId])
+  @@index([userId, status])
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  query     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, query])
+  @@index([userId, createdAt])
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model NotificationPrefs {
+  userId          String  @id
+  newEpisodes     Boolean @default(true)
+  newAnime        Boolean @default(false)
+  recommendations Boolean @default(false)
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SyncRun {
+  id            String    @id @default(cuid())
+  provider      String
+  startedAt     DateTime  @default(now())
+  finishedAt    DateTime?
+  animeAdded    Int       @default(0)
+  animeUpdated  Int       @default(0)
+  episodesAdded Int       @default(0)
+  errors        String[]  @default([])
+
+  @@index([startedAt])
+}
