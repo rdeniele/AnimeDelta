@@ -150,10 +150,14 @@ export async function syncEpisodes(provider: MetadataProvider = getMetadataProvi
           episodeId = (await db.episode.create({ data: { ...data, animeId: a.id, seasonId, episodeNumber: e.episodeNumber } })).id;
           stats.episodesAdded++;
         }
-        // Providers that supply a playable URL (official embeds) get it registered as a media source.
+        // Providers that supply a playable URL (official embeds) are the source of truth for it:
+        // replace what's stored whenever it changes, so a re-synced video actually plays, not just its thumbnail.
         if (e.mediaUrl && episodeId) {
-          const has = await db.mediaSource.findFirst({ where: { episodeId, url: e.mediaUrl }, select: { id: true } });
-          if (!has) await db.mediaSource.create({ data: { episodeId, url: e.mediaUrl, quality: "auto", mimeType: "video/youtube" } });
+          const current = await db.mediaSource.findFirst({ where: { episodeId }, orderBy: { createdAt: "asc" } });
+          if (!current || current.url !== e.mediaUrl) {
+            await db.mediaSource.deleteMany({ where: { episodeId } });
+            await db.mediaSource.create({ data: { episodeId, url: e.mediaUrl, quality: "auto", mimeType: "video/youtube" } });
+          }
         }
       }
       await db.anime.update({ where: { id: a.id }, data: { episodesSyncedAt: new Date() } });

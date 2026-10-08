@@ -16,6 +16,26 @@ Current local config (`backend/.env.local`, not committed): `METADATA_PROVIDER=y
 (`YOUTUBE_CHANNELS`) via the Data API; the library provider only ever serves URLs that were
 explicitly registered as a `MediaSource`.
 
+## 2026-10-08 session: sync was refreshing thumbnails but not videos
+
+**Fixed.** In `syncEpisodes` (`backend/src/sync/syncService.ts`), an existing episode's
+`title`/`description`/`thumbnail` were updated on every sync, but its `MediaSource` (the
+actual playable video) was only ever *added* if the provider's URL wasn't already stored —
+never replaced. Since `LibraryVideoProvider.getVideo` serves the oldest source by
+`createdAt`, a channel re-uploading/changing a video meant the thumbnail updated but the
+old, possibly stale video kept playing forever; the new URL just sat there unused.
+
+Changed it to replace-on-change instead of add-only: if the provider's current URL differs
+from what's stored, delete existing sources for that episode and create the new one. This
+matches how `importLibrary()` already treats hand-edited catalog entries ("the file is the
+source of truth for links") — now the provider sync does the same. **User's explicit
+instruction: do this every time** — the app's purpose is watching anime, not browsing a
+list with pretty pictures, so video content must stay as fresh as the metadata on every
+sync run, not just on demand.
+
+Checked the live DB for fallout from the old behavior before pushing: zero episodes had
+more than one `MediaSource` row, so there was nothing to backfill/clean up.
+
 ## 2026-10-08 session: admin UI for adding anime/sources
 
 Added a small admin web page at `backend/public/admin.html` (+ `admin.js`) so series and
