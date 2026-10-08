@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { z, type ZodType } from "zod";
 import { db } from "./db.js";
 import { env } from "./env.js";
+import { isProviderError } from "../providers/errors.js";
 
 export class HttpError extends Error {
   constructor(
@@ -56,6 +57,7 @@ export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
 }
 
 export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (isProviderError(err)) return void res.status(err.status).json(err.toJSON());
   if (err instanceof HttpError) return void res.status(err.status).json({ error: err.message });
   console.error(err);
   res.status(500).json({ error: "Something went wrong" });

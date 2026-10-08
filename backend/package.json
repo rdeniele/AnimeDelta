@@ -15,7 +15,8 @@
     "build": "prisma generate && esbuild src/vercel.ts --bundle --platform=node --format=esm --target=node20 --outfile=api/index.js --banner:js=\"import {createRequire} from 'module'; const require = createRequire(import.meta.url);\" --packages=external",
     "db:clear-mock": "tsx prisma/clear-mock.ts",
     "catalog:import": "tsx prisma/import-library.ts",
-    "catalog:check": "tsx prisma/import-library.ts --dry"
+    "catalog:check": "tsx prisma/import-library.ts --dry",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "keywords": [],
   "author": "",

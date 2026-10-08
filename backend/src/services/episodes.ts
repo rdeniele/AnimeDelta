@@ -1,5 +1,7 @@
 import { db, Prisma } from "../lib/db.js";
 import { getSubtitleProvider, getVideoProvider } from "../providers/registry.js";
+import { isProviderError } from "../providers/errors.js";
+import { resolveEpisodeSource } from "../resolver/sourceResolver.js";
 
 const episodeSelect = {
   id: true,
@@ -75,11 +77,23 @@ export async function playbackInfo(episodeId: string, userId?: string) {
   });
   const idx = ordered.findIndex((e) => e.id === ep.id);
 
-  const [video, subtitles, progress] = await Promise.all([
-    getVideoProvider().getVideo(ep.animeId, ep.id),
-    getSubtitleProvider().getSubtitles(ep.id),
+  const [resolved, progress] = await Promise.all([
+    resolveEpisodeSource({
+      animeId: ep.animeId,
+      episode: { id: ep.id, number: ep.episodeNumber },
+      videoProvider: getVideoProvider(),
+      subtitleProvider: getSubtitleProvider(),
+    }).catch((err) => {
+      // Structured resolution failures (SOURCE_NOT_FOUND, DRM_PROTECTED, ...) degrade to
+      // "video unavailable" for this endpoint rather than failing the whole request; anything
+      // unexpected still propagates to the route's error handler.
+      if (isProviderError(err)) return null;
+      throw err;
+    }),
     userId ? db.watchProgress.findUnique({ where: { userId_episodeId: { userId, episodeId } } }) : null,
   ]);
+  const video = resolved?.video ?? null;
+  const subtitles = resolved?.subtitleTracks ?? (await getSubtitleProvider().getSubtitles(ep.id).catch(() => []));
 
   return {
     episode: ep,

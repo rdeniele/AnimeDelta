@@ -1,4 +1,7 @@
 import { env } from "../../lib/env.js";
+import { cache, CACHE_TTL } from "../../cache/cacheManager.js";
+import { recordEvent } from "../../debug/inspector.js";
+import { ProviderError } from "../errors.js";
 import type {
   AnimeDTO,
   AnimeSeasonDTO,
@@ -22,14 +25,37 @@ async function throttledGet<T>(path: string): Promise<T | null> {
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCall = Date.now();
   const base = (env.metadataApiUrl || "https://api.jikan.moe/v4").replace(/\/$/, "");
-  const res = await fetch(`${base}${path}`, {
-    headers: env.metadataApiKey ? { Authorization: `Bearer ${env.metadataApiKey}` } : {},
+  const url = `${base}${path}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: env.metadataApiKey ? { Authorization: `Bearer ${env.metadataApiKey}` } : {},
+    });
+  } catch (err) {
+    const e = ProviderError.networkError(`Could not reach the metadata API: ${(err as Error).message}`);
+    recordEvent({ provider: "jikan", operation: "throttledGet", requestUrl: url, method: "GET", error: { code: e.code, message: e.message } });
+    throw e;
+  }
+  recordEvent({
+    provider: "jikan",
+    operation: "throttledGet",
+    requestUrl: url,
+    method: "GET",
+    status: res.status,
+    contentType: res.headers.get("content-type"),
   });
   if (res.status === 404) return null;
-  if (res.status === 429) throw new Error("Metadata API rate limit reached; try again later");
-  if (!res.ok) throw new Error(`Metadata API error ${res.status} for ${path}`);
-  return (await res.json()) as T;
+  if (res.status === 429) throw ProviderError.providerUnavailable("Metadata API rate limit reached; try again later.");
+  if (!res.ok) throw ProviderError.invalidResponse(`Metadata API error ${res.status} for ${path}`);
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw ProviderError.invalidResponse(`Metadata API returned a non-JSON response for ${path}`);
+  }
 }
+
+/** Wraps a cache key with the provider name so TTLs/clears never collide with other providers. */
+const key = (op: string, ...parts: string[]) => `jikan:${op}:${parts.join(":")}`;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const TYPES: Record<string, AnimeTypeDTO> = { TV: "TV", Movie: "MOVIE", OVA: "OVA", ONA: "ONA", Special: "SPECIAL" };
@@ -72,29 +98,35 @@ export class JikanMetadataProvider implements MetadataProvider {
   readonly name = "jikan";
 
   async search(query: string) {
-    const r = await throttledGet<any>(`/anime?q=${encodeURIComponent(query)}&limit=20&sfw=true`);
-    return (r?.data ?? []).map(mapAnime);
+    return cache.getOrSet(key("search", query.toLowerCase()), CACHE_TTL.search, async () => {
+      const r = await throttledGet<any>(`/anime?q=${encodeURIComponent(query)}&limit=20&sfw=true`);
+      return (r?.data ?? []).map(mapAnime);
+    });
   }
   async getAnime(id: string) {
-    const r = await throttledGet<any>(`/anime/${encodeURIComponent(id)}/full`);
-    return r?.data ? mapAnime(r.data) : null;
+    return cache.getOrSet(key("anime", id), CACHE_TTL.animeDetails, async () => {
+      const r = await throttledGet<any>(`/anime/${encodeURIComponent(id)}/full`);
+      return r?.data ? mapAnime(r.data) : null;
+    });
   }
   async getEpisodes(id: string): Promise<EpisodeDTO[]> {
-    const out: EpisodeDTO[] = [];
-    for (let page = 1; page <= 5; page++) {
-      const r = await throttledGet<any>(`/anime/${encodeURIComponent(id)}/episodes?page=${page}`);
-      for (const e of r?.data ?? []) {
-        out.push({
-          seasonNumber: 1,
-          episodeNumber: e.mal_id,
-          title: e.title ?? `Episode ${e.mal_id}`,
-          description: "",
-          releaseDate: e.aired ? new Date(e.aired) : null,
-        });
+    return cache.getOrSet(key("episodes", id), CACHE_TTL.episodes, async () => {
+      const out: EpisodeDTO[] = [];
+      for (let page = 1; page <= 5; page++) {
+        const r = await throttledGet<any>(`/anime/${encodeURIComponent(id)}/episodes?page=${page}`);
+        for (const e of r?.data ?? []) {
+          out.push({
+            seasonNumber: 1,
+            episodeNumber: e.mal_id,
+            title: e.title ?? `Episode ${e.mal_id}`,
+            description: "",
+            releaseDate: e.aired ? new Date(e.aired) : null,
+          });
+        }
+        if (!r?.pagination?.has_next_page) break;
       }
-      if (!r?.pagination?.has_next_page) break;
-    }
-    return out;
+      return out;
+    });
   }
   async getSeasons(): Promise<SeasonDTO[]> {
     return [{ number: 1, title: "Season 1" }];

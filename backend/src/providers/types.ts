@@ -54,9 +54,14 @@ export interface MetadataProvider {
   listAnime(page: number): Promise<{ items: AnimeDTO[]; hasMore: boolean }>;
 }
 
+/** Normalized stream container/transport. Inferred from the URL/mimeType when a provider doesn't set it. */
+export type MediaType = "hls" | "dash" | "mp4" | "other";
+
 export interface VideoQuality {
   label: string;
   url: string;
+  /** Additive, optional: set when a per-quality URL differs in container from the top-level source. */
+  type?: MediaType;
 }
 
 export interface VideoSource {
@@ -66,6 +71,12 @@ export interface VideoSource {
   /** Intro window in seconds, when known, enabling "Skip intro". */
   introStart?: number | null;
   introEnd?: number | null;
+  /** Additive, optional fields populated by resolver/mediaNormalizer for richer clients/debug tooling. */
+  type?: MediaType;
+  isM3U8?: boolean;
+  language?: string;
+  /** Non-sensitive request headers a player may need to attach (e.g. Referer). Never auth secrets. */
+  headers?: Record<string, string>;
 }
 
 export interface VideoProvider {
@@ -77,6 +88,8 @@ export interface SubtitleTrack {
   language: string;
   label: string;
   url: string;
+  /** Additive, optional: subtitle container format, inferred from the URL when absent. */
+  format?: "vtt" | "srt" | "ass" | "other";
 }
 
 export interface SubtitleProvider {

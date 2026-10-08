@@ -36,6 +36,22 @@ Metadata, video and subtitles are separate interfaces in `backend/src/providers/
 Add a source you have rights to: `POST /api/admin/media-sources {episodeId, url, quality}` (and `/api/admin/subtitles`).
 Sync (`SyncService`: `syncAnime/syncEpisodes/syncSeasons/syncMetadata`) runs on `SYNC_CRON` and via `POST /api/admin/sync`; runs are stored in `SyncRun`.
 
+### Resolver layer
+`backend/src/resolver/sourceResolver.ts` sits between the provider registry and `services/episodes.ts`:
+it normalizes whatever a `VideoProvider`/`SubtitleProvider` returns into a consistent shape
+(`type`: `hls`/`dash`/`mp4`/`other`, `isM3U8`, flat `sources`/`subtitles` lists), caches resolved
+sources briefly (`cache/cacheManager.ts`, default 60s — short on purpose, since media URLs can
+expire), and turns failures into structured errors (`providers/errors.ts`:
+`SOURCE_NOT_FOUND`, `PROVIDER_UNAVAILABLE`, `EPISODE_NOT_FOUND`, `UNSUPPORTED_FORMAT`,
+`ACCESS_RESTRICTED`, `DRM_PROTECTED`, `INVALID_RESPONSE`, `NETWORK_ERROR`) instead of throwing
+raw errors. It never implements scraping/DRM bypass itself — a provider that can't legitimately
+resolve a source should throw one of these codes, not work around the restriction.
+
+Recent provider activity (request URL, status, detected media type/quality, subtitles — with
+auth headers/tokens/cookies redacted) is visible at `GET /api/admin/debug/events` (admin token
+required); `POST /api/admin/debug/events/clear` resets it. `npm run test` runs the resolver/cache/
+mock-provider test suite (Node's built-in test runner, no external services required).
+
 ## Mobile
 
 ```bash
