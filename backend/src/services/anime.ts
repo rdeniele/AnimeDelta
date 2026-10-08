@@ -135,7 +135,7 @@ export async function listGenres() {
     orderBy: { name: "asc" },
     select: { id: true, name: true, _count: { select: { anime: true } } },
   });
-  return rows.map((g) => ({ id: g.id, name: g.name, count: g._count.anime }));
+  return rows.filter((g) => g._count.anime > 0).map((g) => ({ id: g.id, name: g.name, count: g._count.anime }));
 }
 
 export async function seasonAnime(year: number, season: string, genre?: string) {

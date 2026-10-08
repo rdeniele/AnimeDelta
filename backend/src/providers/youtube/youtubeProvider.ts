@@ -48,7 +48,18 @@ export function cleanTitle(raw: string): string {
   return cleaned || raw.trim();
 }
 
-const channelLabel = (title: string) => title.replace(/\s*\b(Asia|ENG|Official)\b/g, "").trim() || title;
+/** Short source label shown as the "genre" chip, e.g. "GUNDAM CHANNEL INTL" -> "Gundam". */
+export function channelLabel(title: string): string {
+  const t = title
+    .replace(/\s*powered by.*$/i, "")
+    .replace(/\s*[!]?\s*on\s+TMS.*$/i, " TMS")
+    .replace(/\b(Asia|ENG|Official|Channel|INTL|International)\b/gi, "")
+    .replace(/[!]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!t) return title;
+  return t === t.toUpperCase() ? t.charAt(0) + t.slice(1).toLowerCase() : t;
+}
 
 export const watchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
 

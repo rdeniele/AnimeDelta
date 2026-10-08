@@ -210,18 +210,18 @@ function seasonOf(date) {
 }
 function buildCatalog(now = /* @__PURE__ */ new Date()) {
   return ROWS.map((r, i) => {
-    const [slug, english, native, genres, studio, type, status, rating, startWeeks, episodes] = r;
+    const [slug2, english, native, genres, studio, type, status, rating, startWeeks, episodes] = r;
     const start = new Date(now.getTime() + startWeeks * WEEK);
     start.setUTCHours(15, 0, 0, 0);
     return {
-      externalId: slug,
+      externalId: slug2,
       title: english,
       englishTitle: english,
       nativeTitle: native,
-      synonyms: [slug.replace(/-/g, " "), english.split(" ").slice(0, 2).join(" ")],
+      synonyms: [slug2.replace(/-/g, " "), english.split(" ").slice(0, 2).join(" ")],
       description: DESCRIPTIONS[i % DESCRIPTIONS.length],
-      coverImage: `https://picsum.photos/seed/${slug}-p/400/600`,
-      bannerImage: `https://picsum.photos/seed/${slug}-b/1280/720`,
+      coverImage: `https://picsum.photos/seed/${slug2}-p/400/600`,
+      bannerImage: `https://picsum.photos/seed/${slug2}-b/1280/720`,
       year: start.getUTCFullYear(),
       month: start.getUTCMonth() + 1,
       season: seasonOf(start),
@@ -319,11 +319,11 @@ function hash(s) {
 var MockVideoProvider = class {
   name = "mock";
   async getVideo(animeId, episodeId) {
-    const url = SAMPLES[hash(animeId + episodeId) % SAMPLES.length];
+    const url2 = SAMPLES[hash(animeId + episodeId) % SAMPLES.length];
     return {
-      url,
+      url: url2,
       mimeType: "video/mp4",
-      qualities: [{ label: "Auto", url }],
+      qualities: [{ label: "Auto", url: url2 }],
       introStart: 5,
       introEnd: 35
     };
@@ -360,7 +360,7 @@ ${cues.join("\n\n")}
 
 // src/routes/admin.ts
 import { Router } from "express";
-import { z as z2 } from "zod";
+import { z as z3 } from "zod";
 
 // src/providers/jikan/jikanProvider.ts
 var MIN_INTERVAL_MS = 450;
@@ -501,7 +501,11 @@ function cleanTitle(raw2) {
   const cleaned = first.replace(/[【[][^】\]]*(ani-?one|muse|asia|limited|free|english|sub|eng)[^】\]]*[】\]]/gi, " ").replace(/\((?:limited-time|limited)[^)]*\)/gi, " ").replace(/[《》【】]/g, " ").replace(/\s+/g, " ").trim();
   return cleaned || raw2.trim();
 }
-var channelLabel = (title) => title.replace(/\s*\b(Asia|ENG|Official)\b/g, "").trim() || title;
+function channelLabel(title) {
+  const t = title.replace(/\s*powered by.*$/i, "").replace(/\s*[!]?\s*on\s+TMS.*$/i, " TMS").replace(/\b(Asia|ENG|Official|Channel|INTL|International)\b/gi, "").replace(/[!]/g, "").replace(/\s+/g, " ").trim();
+  if (!t) return title;
+  return t === t.toUpperCase() ? t.charAt(0) + t.slice(1).toLowerCase() : t;
+}
 var watchUrl = (id) => `https://www.youtube.com/watch?v=${id}`;
 var YouTubeMetadataProvider = class {
   name = "youtube";
@@ -851,6 +855,110 @@ async function runFullSync(provider = getMetadataProvider(), opts) {
   return total;
 }
 
+// src/library/importLibrary.ts
+import { z as z2 } from "zod";
+var url = z2.url({ protocol: /^https?$/ }).max(2e3);
+var subtitle = z2.object({ language: z2.string().min(2).max(10), label: z2.string().min(1).max(40), url });
+var episode = z2.union([
+  url.transform((u) => ({ url: u })),
+  z2.object({
+    url,
+    title: z2.string().max(200).optional(),
+    description: z2.string().max(1e3).optional(),
+    thumbnail: url.optional(),
+    duration: z2.number().int().min(1).max(600).optional(),
+    subtitles: z2.array(subtitle).optional()
+  })
+]);
+var series = z2.object({
+  title: z2.string().min(1).max(200),
+  nativeTitle: z2.string().max(200).optional(),
+  description: z2.string().max(4e3).default(""),
+  cover: url.optional(),
+  banner: url.optional(),
+  year: z2.number().int().min(1950).max(2100).optional(),
+  season: z2.enum(["WINTER", "SPRING", "SUMMER", "FALL"]).optional(),
+  status: z2.enum(["AIRING", "FINISHED", "UPCOMING", "CANCELLED"]).default("FINISHED"),
+  type: z2.enum(["TV", "MOVIE", "OVA", "ONA", "SPECIAL"]).default("TV"),
+  rating: z2.number().min(0).max(10).optional(),
+  studio: z2.string().max(120).optional(),
+  genres: z2.array(z2.string().min(1).max(40)).default([]),
+  episodes: z2.array(episode).min(1)
+});
+var librarySchema = z2.object({ series: z2.array(series).min(1) });
+var slug = (s) => s.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 80);
+function youTubeId(u) {
+  return /[?&]v=([\w-]{11})/.exec(u)?.[1] ?? /youtu\.be\/([\w-]{11})/.exec(u)?.[1] ?? /youtube\.com\/(?:embed|shorts)\/([\w-]{11})/.exec(u)?.[1] ?? null;
+}
+function mimeFor(u) {
+  if (youTubeId(u)) return "video/youtube";
+  if (/\.m3u8(\?|$)/i.test(u)) return "application/x-mpegURL";
+  if (/\.webm(\?|$)/i.test(u)) return "video/webm";
+  return "video/mp4";
+}
+async function importLibrary(file, dryRun = false) {
+  const out = { series: 0, episodes: 0, created: 0 };
+  for (const s of file.series) {
+    out.series++;
+    out.episodes += s.episodes.length;
+    if (dryRun) continue;
+    const firstId = youTubeId(s.episodes[0].url);
+    const art = s.cover ?? (firstId ? `https://i.ytimg.com/vi/${firstId}/hqdefault.jpg` : null);
+    const externalId = `lib:${slug(s.title)}`;
+    const data = {
+      title: s.title,
+      englishTitle: s.title,
+      nativeTitle: s.nativeTitle ?? null,
+      description: s.description,
+      coverImage: art,
+      bannerImage: s.banner ?? art,
+      year: s.year ?? null,
+      season: s.season ?? null,
+      status: s.status,
+      type: s.type,
+      rating: s.rating ?? null,
+      studio: s.studio ?? null,
+      episodeCount: s.episodes.length,
+      startDate: s.year ? new Date(Date.UTC(s.year, 0, 1)) : null,
+      popularity: 5e3
+    };
+    const existing = await db.anime.findUnique({ where: { externalId }, select: { id: true } });
+    const anime = existing ? await db.anime.update({ where: { id: existing.id }, data }) : await db.anime.create({ data: { ...data, externalId } });
+    await db.animeGenre.deleteMany({ where: { animeId: anime.id } });
+    for (const name of new Set(s.genres)) {
+      const g = await db.genre.upsert({ where: { name }, update: {}, create: { name } });
+      await db.animeGenre.create({ data: { animeId: anime.id, genreId: g.id } });
+    }
+    const season = await db.season.upsert({
+      where: { animeId_number: { animeId: anime.id, number: 1 } },
+      update: {},
+      create: { animeId: anime.id, number: 1, title: "Season 1" }
+    });
+    for (const [i, e] of s.episodes.entries()) {
+      const n = i + 1;
+      const vid = youTubeId(e.url);
+      const row = {
+        title: e.title ?? `Episode ${n}`,
+        description: e.description ?? "",
+        thumbnail: e.thumbnail ?? (vid ? `https://i.ytimg.com/vi/${vid}/hqdefault.jpg` : null),
+        duration: e.duration ?? null
+      };
+      const found = await db.episode.findFirst({ where: { animeId: anime.id, seasonId: season.id, episodeNumber: n }, select: { id: true } });
+      let episodeId = found?.id;
+      if (found) await db.episode.update({ where: { id: found.id }, data: row });
+      else {
+        episodeId = (await db.episode.create({ data: { ...row, animeId: anime.id, seasonId: season.id, episodeNumber: n, releaseDate: /* @__PURE__ */ new Date() } })).id;
+        out.created++;
+      }
+      await db.mediaSource.deleteMany({ where: { episodeId } });
+      await db.mediaSource.create({ data: { episodeId, url: e.url, quality: "auto", mimeType: mimeFor(e.url) } });
+      await db.subtitle.deleteMany({ where: { episodeId } });
+      if (e.subtitles?.length) await db.subtitle.createMany({ data: e.subtitles.map((t) => ({ ...t, episodeId })) });
+    }
+  }
+  return out;
+}
+
 // src/routes/admin.ts
 var admin = Router();
 admin.use(requireAdmin);
@@ -878,14 +986,18 @@ admin.post("/sync", async (_req, res) => {
   runFullSync().finally(() => syncing = false);
   res.status(202).json({ started: true });
 });
+admin.post("/library-series", async (req, res) => {
+  const body = parse(series, req.body);
+  res.status(201).json(await importLibrary({ series: [body] }));
+});
 admin.post("/media-sources", async (req, res) => {
   const body = parse(
-    z2.object({
+    z3.object({
       episodeId: idParam,
-      url: z2.url({ protocol: /^https?$/ }).max(2e3),
-      quality: z2.string().max(20).default("auto"),
-      mimeType: z2.string().max(60).optional(),
-      note: z2.string().max(200).optional()
+      url: z3.url({ protocol: /^https?$/ }).max(2e3),
+      quality: z3.string().max(20).default("auto"),
+      mimeType: z3.string().max(60).optional(),
+      note: z3.string().max(200).optional()
     }),
     req.body
   );
@@ -893,11 +1005,11 @@ admin.post("/media-sources", async (req, res) => {
 });
 admin.post("/subtitles", async (req, res) => {
   const body = parse(
-    z2.object({
+    z3.object({
       episodeId: idParam,
-      language: z2.string().min(2).max(10),
-      label: z2.string().min(1).max(40),
-      url: z2.url({ protocol: /^https?$/ }).max(2e3)
+      language: z3.string().min(2).max(10),
+      label: z3.string().min(1).max(40),
+      url: z3.url({ protocol: /^https?$/ }).max(2e3)
     }),
     req.body
   );
@@ -906,10 +1018,10 @@ admin.post("/subtitles", async (req, res) => {
 
 // src/routes/catalog.ts
 import { Router as Router2 } from "express";
-import { z as z4 } from "zod";
+import { z as z5 } from "zod";
 
 // src/services/anime.ts
-import { z as z3 } from "zod";
+import { z as z4 } from "zod";
 var cardSelect = {
   id: true,
   title: true,
@@ -941,20 +1053,20 @@ var SORTS = {
   rating: { rating: { sort: "desc", nulls: "last" } },
   popular: { popularity: "desc" }
 };
-var csv = z3.string().optional().transform((v) => v ? v.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10) : []);
-var filterSchema = z3.object({
-  q: z3.string().trim().max(100).optional(),
+var csv = z4.string().optional().transform((v) => v ? v.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10) : []);
+var filterSchema = z4.object({
+  q: z4.string().trim().max(100).optional(),
   genres: csv,
-  year: z3.coerce.number().int().min(1950).max(2100).optional(),
-  month: z3.coerce.number().int().min(1).max(12).optional(),
-  season: z3.enum(["WINTER", "SPRING", "SUMMER", "FALL"]).optional(),
-  status: z3.enum(["AIRING", "FINISHED", "UPCOMING", "CANCELLED"]).optional(),
-  type: z3.enum(["TV", "MOVIE", "OVA", "ONA", "SPECIAL"]).optional(),
-  studio: z3.string().trim().max(80).optional(),
-  minRating: z3.coerce.number().min(0).max(10).optional(),
-  sort: z3.enum(Object.keys(SORTS)).default("popular"),
-  page: z3.coerce.number().int().min(1).max(500).default(1),
-  limit: z3.coerce.number().int().min(1).max(50).default(24)
+  year: z4.coerce.number().int().min(1950).max(2100).optional(),
+  month: z4.coerce.number().int().min(1).max(12).optional(),
+  season: z4.enum(["WINTER", "SPRING", "SUMMER", "FALL"]).optional(),
+  status: z4.enum(["AIRING", "FINISHED", "UPCOMING", "CANCELLED"]).optional(),
+  type: z4.enum(["TV", "MOVIE", "OVA", "ONA", "SPECIAL"]).optional(),
+  studio: z4.string().trim().max(80).optional(),
+  minRating: z4.coerce.number().min(0).max(10).optional(),
+  sort: z4.enum(Object.keys(SORTS)).default("popular"),
+  page: z4.coerce.number().int().min(1).max(500).default(1),
+  limit: z4.coerce.number().int().min(1).max(50).default(24)
 });
 function buildWhere(f) {
   const and = [];
@@ -1027,7 +1139,7 @@ async function listGenres() {
     orderBy: { name: "asc" },
     select: { id: true, name: true, _count: { select: { anime: true } } }
   });
-  return rows.map((g) => ({ id: g.id, name: g.name, count: g._count.anime }));
+  return rows.filter((g) => g._count.anime > 0).map((g) => ({ id: g.id, name: g.name, count: g._count.anime }));
 }
 async function seasonAnime(year, season, genre) {
   const where = buildWhere({
@@ -1355,7 +1467,7 @@ catalog.get("/genres", async (_req, res) => {
 });
 catalog.get("/seasons/:year/:season", async (req, res) => {
   const p = parse(
-    z4.object({ year: z4.coerce.number().int().min(1950).max(2100), season: z4.enum(["winter", "spring", "summer", "fall"]) }),
+    z5.object({ year: z5.coerce.number().int().min(1950).max(2100), season: z5.enum(["winter", "spring", "summer", "fall"]) }),
     req.params
   );
   const genre = typeof req.query.genre === "string" ? req.query.genre.slice(0, 40) : void 0;
@@ -1401,12 +1513,12 @@ cron.get("/cron/sync", async (req, res) => {
 // src/routes/user.ts
 import { Router as Router4 } from "express";
 import rateLimit from "express-rate-limit";
-import { z as z5 } from "zod";
+import { z as z6 } from "zod";
 var user = Router4();
-var listStatus = z5.enum(["WATCHING", "PLAN_TO_WATCH", "COMPLETED", "DROPPED"]);
+var listStatus = z6.enum(["WATCHING", "PLAN_TO_WATCH", "COMPLETED", "DROPPED"]);
 var authLimiter = rateLimit({ windowMs: 15 * 60 * 1e3, limit: 20, standardHeaders: true, legacyHeaders: false });
 user.post("/auth/anonymous", authLimiter, async (req, res) => {
-  const { username } = parse(z5.object({ username: z5.string().trim().min(1).max(30).default("Otaku") }), req.body ?? {});
+  const { username } = parse(z6.object({ username: z6.string().trim().min(1).max(30).default("Otaku") }), req.body ?? {});
   const token = newToken();
   const u = await db.user.create({ data: { username, tokenHash: hashToken(token) }, select: { id: true, username: true } });
   res.status(201).json({ token, user: u });
@@ -1417,12 +1529,12 @@ user.get("/auth/me", requireAuth, async (req, res) => {
   res.json(u);
 });
 user.patch("/auth/me", requireAuth, async (req, res) => {
-  const { username } = parse(z5.object({ username: z5.string().trim().min(1).max(30) }), req.body);
+  const { username } = parse(z6.object({ username: z6.string().trim().min(1).max(30) }), req.body);
   res.json(await db.user.update({ where: { id: req.userId }, data: { username }, select: { id: true, username: true } }));
 });
 user.get("/search", async (req, res) => {
-  const q = parse(z5.string().trim().min(1).max(100), req.query.q);
-  const page = parse(z5.coerce.number().int().min(1).max(100).default(1), req.query.page);
+  const q = parse(z6.string().trim().min(1).max(100), req.query.q);
+  const page = parse(z6.coerce.number().int().min(1).max(100).default(1), req.query.page);
   res.json(await listAnime({ q, genres: [], sort: "popular", page, limit: 24 }));
 });
 user.get("/search/popular", async (_req, res) => {
@@ -1434,7 +1546,7 @@ user.get("/search/history", requireAuth, async (req, res) => {
   res.json(rows.map((r) => r.query));
 });
 user.post("/search/history", requireAuth, async (req, res) => {
-  const { query } = parse(z5.object({ query: z5.string().trim().min(1).max(100) }), req.body);
+  const { query } = parse(z6.object({ query: z6.string().trim().min(1).max(100) }), req.body);
   await db.searchHistory.upsert({
     where: { userId_query: { userId: req.userId, query } },
     update: { createdAt: /* @__PURE__ */ new Date() },
@@ -1448,10 +1560,10 @@ user.delete("/search/history", requireAuth, async (req, res) => {
 });
 user.post("/watch-progress", requireAuth, async (req, res) => {
   const body = parse(
-    z5.object({
+    z6.object({
       episodeId: idParam,
-      progressSeconds: z5.number().int().min(0).max(86400),
-      durationSeconds: z5.number().int().min(0).max(86400)
+      progressSeconds: z6.number().int().min(0).max(86400),
+      durationSeconds: z6.number().int().min(0).max(86400)
     }),
     req.body
   );
@@ -1476,7 +1588,7 @@ user.get("/watchlist", requireAuth, async (req, res) => {
   res.json(await getList(req.userId, status));
 });
 user.post("/watchlist", requireAuth, async (req, res) => {
-  const body = parse(z5.object({ animeId: idParam, status: listStatus.default("PLAN_TO_WATCH") }), req.body);
+  const body = parse(z6.object({ animeId: idParam, status: listStatus.default("PLAN_TO_WATCH") }), req.body);
   const exists = await db.anime.findUnique({ where: { id: body.animeId }, select: { id: true } });
   if (!exists) throw new HttpError(404, "Anime not found");
   const row = await setListStatus(req.userId, body.animeId, body.status);
@@ -1487,7 +1599,7 @@ user.delete("/watchlist/:animeId", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 user.post("/notifications/token", requireAuth, async (req, res) => {
-  const body = parse(z5.object({ token: z5.string().min(10).max(300), platform: z5.enum(["ios", "android"]) }), req.body);
+  const body = parse(z6.object({ token: z6.string().min(10).max(300), platform: z6.enum(["ios", "android"]) }), req.body);
   await db.pushToken.upsert({
     where: { token: body.token },
     update: { userId: req.userId, platform: body.platform },
@@ -1495,7 +1607,7 @@ user.post("/notifications/token", requireAuth, async (req, res) => {
   });
   res.status(204).end();
 });
-var prefsSchema = z5.object({ newEpisodes: z5.boolean(), newAnime: z5.boolean(), recommendations: z5.boolean() });
+var prefsSchema = z6.object({ newEpisodes: z6.boolean(), newAnime: z6.boolean(), recommendations: z6.boolean() });
 user.get("/notifications/prefs", requireAuth, async (req, res) => {
   const p = await db.notificationPrefs.findUnique({ where: { userId: req.userId } });
   res.json(p ?? { newEpisodes: true, newAnime: false, recommendations: false });
@@ -1514,6 +1626,7 @@ function createApp() {
   app.set("trust proxy", 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors());
+  app.use(express.static("public"));
   app.use(express.json({ limit: "20kb" }));
   app.use(
     "/api",
