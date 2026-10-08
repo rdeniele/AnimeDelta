@@ -25,11 +25,11 @@ export default function Seasonal() {
       <Header title="Seasonal" back />
       <View className="mb-3 flex-row items-center justify-center gap-4">
         <Pressable accessibilityRole="button" accessibilityLabel="Previous year" hitSlop={10} onPress={() => setYear(year - 1)} className="p-2 active:opacity-60">
-          <Ionicons name="chevron-back" size={20} color="#a99fc4" />
+          <Ionicons name="chevron-back" size={20} color="#a79ba8" />
         </Pressable>
         <Text className="text-fg text-lg font-bold">{year}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Next year" hitSlop={10} onPress={() => setYear(year + 1)} className="p-2 active:opacity-60">
-          <Ionicons name="chevron-forward" size={20} color="#a99fc4" />
+          <Ionicons name="chevron-forward" size={20} color="#a79ba8" />
         </Pressable>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }} className="mb-3">

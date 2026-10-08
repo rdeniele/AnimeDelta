@@ -59,9 +59,9 @@ export default function Search() {
           </View>
           {history.map((h) => (
             <Pressable key={h} onPress={() => pick(h)} className="flex-row items-center gap-3 py-2.5 active:opacity-60">
-              <Ionicons name="time-outline" size={18} color="#a99fc4" />
+              <Ionicons name="time-outline" size={18} color="#a79ba8" />
               <Text className="text-fg flex-1 text-base">{h}</Text>
-              <Ionicons name="arrow-up-outline" size={16} color="#a99fc4" style={{ transform: [{ rotate: "-45deg" }] }} />
+              <Ionicons name="arrow-up-outline" size={16} color="#a79ba8" style={{ transform: [{ rotate: "-45deg" }] }} />
             </Pressable>
           ))}
         </View>
@@ -80,14 +80,14 @@ export default function Search() {
   return (
     <View className="flex-1" style={{ paddingTop: insets.top + 8 }}>
       <View className="bg-surface border-line mx-4 mb-4 flex-row items-center gap-3 rounded-2xl border px-4">
-        <Ionicons name="search" size={18} color="#a99fc4" />
+        <Ionicons name="search" size={18} color="#a79ba8" />
         <TextInput
           ref={input}
           value={text}
           onChangeText={setText}
           onSubmitEditing={() => commit(text)}
           placeholder="Search anime..."
-          placeholderTextColor="#a99fc4"
+          placeholderTextColor="#a79ba8"
           returnKeyType="search"
           autoCorrect={false}
           accessibilityLabel="Search anime"
@@ -96,7 +96,7 @@ export default function Search() {
         />
         {text ? (
           <Pressable onPress={() => setText("")} hitSlop={8} accessibilityRole="button" accessibilityLabel="Clear text">
-            <Ionicons name="close-circle" size={20} color="#a99fc4" />
+            <Ionicons name="close-circle" size={20} color="#a79ba8" />
           </Pressable>
         ) : null}
       </View>

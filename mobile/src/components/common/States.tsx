@@ -22,7 +22,7 @@ export function EmptyState({
   return (
     <View className="items-center justify-center px-8 py-16">
       <View className="bg-surface2 mb-4 h-16 w-16 items-center justify-center rounded-full">
-        <Ionicons name={icon} size={30} color="#8b5cf6" />
+        <Ionicons name={icon} size={30} color="#e11d48" />
       </View>
       <Text className="text-fg text-center text-lg font-bold">{title}</Text>
       {message ? <Text className="text-muted mt-1 text-center text-sm">{message}</Text> : null}
@@ -52,7 +52,7 @@ export function OfflineBanner() {
   if (online) return null;
   return (
     <View accessibilityRole="alert" className="mx-4 mb-3 flex-row items-start gap-3 rounded-2xl border border-line bg-surface p-3">
-      <Ionicons name="cloud-offline-outline" size={20} color="#38bdf8" />
+      <Ionicons name="cloud-offline-outline" size={20} color="#ff6b81" />
       <View className="flex-1">
         <Text className="text-fg text-sm font-bold">You&apos;re offline.</Text>
         <Text className="text-muted text-xs">Cached anime information is available. Streaming requires an internet connection.</Text>

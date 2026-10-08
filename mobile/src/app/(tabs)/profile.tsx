@@ -17,10 +17,10 @@ function LinkRow({ icon, label, detail, to }: { icon: keyof typeof Ionicons.glyp
   const router = useRouter();
   return (
     <Pressable accessibilityRole="link" onPress={() => router.push(to)} className="flex-row items-center gap-3 py-3.5 active:opacity-60">
-      <Ionicons name={icon} size={22} color="#8b5cf6" />
+      <Ionicons name={icon} size={22} color="#e11d48" />
       <Text className="text-fg flex-1 text-base font-medium">{label}</Text>
       {detail ? <Text className="text-muted text-sm">{detail}</Text> : null}
-      <Ionicons name="chevron-forward" size={18} color="#a99fc4" />
+      <Ionicons name="chevron-forward" size={18} color="#a79ba8" />
     </Pressable>
   );
 }
@@ -61,7 +61,7 @@ export default function Profile() {
             className="mt-3 flex-row items-center gap-2 active:opacity-60"
           >
             <Text className="text-fg text-xl font-bold">{username}</Text>
-            <Ionicons name="pencil" size={14} color="#a99fc4" />
+            <Ionicons name="pencil" size={14} color="#a79ba8" />
           </Pressable>
         </View>
 

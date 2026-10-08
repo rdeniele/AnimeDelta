@@ -17,14 +17,14 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#8b5cf6",
-        tabBarInactiveTintColor: light ? "#6a5e8c" : "#a99fc4",
+        tabBarActiveTintColor: "#e11d48",
+        tabBarInactiveTintColor: light ? "#7a5f6b" : "#a79ba8",
         tabBarStyle: {
-          backgroundColor: light ? "#ffffff" : "#110a1f",
-          borderTopColor: light ? "#d9cff2" : "#2c2047",
+          backgroundColor: light ? "#ffffff" : "#0e0a14",
+          borderTopColor: light ? "#ead3da" : "#2c2036",
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-        sceneStyle: { backgroundColor: light ? "#f7f4ff" : "#0a0612" },
+        sceneStyle: { backgroundColor: light ? "#fbf6f7" : "#07050c" },
       }}
     >
       {TABS.map((t) => (

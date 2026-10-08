@@ -26,7 +26,7 @@ function EpisodeRow({ ep, animeId }: { ep: Episode; animeId: string }) {
           <Art uri={ep.thumbnail} radius={10} style={{ width: 128, height: 72 }} />
           {ep.completed ? (
             <View className="bg-success absolute top-1.5 right-1.5 h-5 w-5 items-center justify-center rounded-full">
-              <Ionicons name="checkmark" size={13} color="#0a0612" />
+              <Ionicons name="checkmark" size={13} color="#07050c" />
             </View>
           ) : (
             <View className="absolute inset-0 items-center justify-center">

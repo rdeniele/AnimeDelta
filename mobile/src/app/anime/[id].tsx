@@ -87,8 +87,8 @@ export default function AnimeScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
         <View style={{ height: bannerH }}>
           <Art uri={a.bannerImage ?? a.coverImage} style={{ position: "absolute", inset: 0 }} priority="high" />
-          <LinearGradient colors={["rgba(10,6,18,0.5)", "transparent"]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 110 }} />
-          <LinearGradient colors={["transparent", "#0a0612"]} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: bannerH * 0.6 }} />
+          <LinearGradient colors={["rgba(7,5,12,0.5)", "transparent"]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 110 }} />
+          <LinearGradient colors={["transparent", "#07050c"]} style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: bannerH * 0.6 }} />
         </View>
 
         <View className="-mt-20 flex-row gap-4 px-4">

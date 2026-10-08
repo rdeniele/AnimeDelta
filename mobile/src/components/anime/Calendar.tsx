@@ -38,13 +38,13 @@ export function Calendar({
     <View className="bg-surface border-line mx-4 rounded-3xl border p-3">
       <View className="mb-2 flex-row items-center justify-between px-1">
         <Pressable accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={10} onPress={() => shift(-1)} className="p-1.5 active:opacity-60">
-          <Ionicons name="chevron-back" size={20} color="#a99fc4" />
+          <Ionicons name="chevron-back" size={20} color="#a79ba8" />
         </Pressable>
         <Text accessibilityRole="header" className="text-fg text-base font-bold">
           {MONTHS[month]} {year}
         </Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Next month" hitSlop={10} onPress={() => shift(1)} className="p-1.5 active:opacity-60">
-          <Ionicons name="chevron-forward" size={20} color="#a99fc4" />
+          <Ionicons name="chevron-forward" size={20} color="#a79ba8" />
         </Pressable>
       </View>
       <View className="flex-row">

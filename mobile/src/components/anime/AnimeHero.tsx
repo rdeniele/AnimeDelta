@@ -27,9 +27,9 @@ function Slide({ anime, width, height }: { anime: AnimeCard; width: number; heig
         style={{ position: "absolute", inset: 0 }}
       >
         <Art uri={anime.bannerImage ?? anime.coverImage} style={{ position: "absolute", inset: 0 }} priority="high" />
-        <LinearGradient colors={["rgba(10,6,18,0.55)", "transparent"]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 140 }} />
+        <LinearGradient colors={["rgba(7,5,12,0.55)", "transparent"]} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 140 }} />
         <LinearGradient
-          colors={["transparent", "rgba(10,6,18,0.85)", "#0a0612"]}
+          colors={["transparent", "rgba(7,5,12,0.85)", "#07050c"]}
           locations={[0, 0.6, 1]}
           style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: height * 0.78 }}
         />

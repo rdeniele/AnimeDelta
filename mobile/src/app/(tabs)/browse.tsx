@@ -45,7 +45,7 @@ export default function Browse() {
         onPress={() => router.push("/search")}
         className="bg-surface border-line mx-4 mb-4 flex-row items-center gap-3 rounded-2xl border px-4 py-3.5"
       >
-        <Ionicons name="search" size={18} color="#a99fc4" />
+        <Ionicons name="search" size={18} color="#a79ba8" />
         <Text className="text-muted text-base">Search anime...</Text>
       </Pressable>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }} className="mb-5">
@@ -66,7 +66,7 @@ export default function Browse() {
             onPress={() => setSheet("filters")}
             className="bg-surface border-line flex-row items-center gap-1.5 rounded-full border px-3.5 py-2 active:opacity-70"
           >
-            <Ionicons name="options-outline" size={16} color="#8b5cf6" />
+            <Ionicons name="options-outline" size={16} color="#e11d48" />
             <Text className="text-fg text-sm font-semibold">Filters{activeCount(filters) ? ` (${activeCount(filters)})` : ""}</Text>
           </Pressable>
           <Pressable
@@ -75,7 +75,7 @@ export default function Browse() {
             onPress={() => setSheet("sort")}
             className="bg-surface border-line flex-row items-center gap-1.5 rounded-full border px-3.5 py-2 active:opacity-70"
           >
-            <Ionicons name="swap-vertical" size={16} color="#8b5cf6" />
+            <Ionicons name="swap-vertical" size={16} color="#e11d48" />
             <Text className="text-fg text-sm font-semibold">{sortLabel(filters)}</Text>
           </Pressable>
         </View>

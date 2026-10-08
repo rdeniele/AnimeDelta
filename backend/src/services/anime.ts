@@ -158,13 +158,20 @@ export async function newAnime() {
   const take = 20;
   const q = (where: Prisma.AnimeWhereInput, orderBy: Prisma.AnimeOrderByWithRelationInput) =>
     db.anime.findMany({ where, select: cardSelect, orderBy, take }).then((r) => r.map(toCard));
+  // Windows are based on when an episode/video was released (what "new" means for video channels
+  // and weekly shows alike), not on the series' original start date.
+  const released = (from: Date, to: Date): Prisma.AnimeWhereInput => ({
+    episodes: { some: { releaseDate: { gte: from, lt: to } } },
+  });
+  const tomorrow = new Date(startOfDay.getTime() + day);
+  const playable: Prisma.AnimeWhereInput = { episodes: { some: {} } };
   const [today, week, month, recentlyAdded, recentlyUpdated, upcoming] = await Promise.all([
-    q({ startDate: { gte: startOfDay, lt: new Date(startOfDay.getTime() + day) } }, { startDate: "desc" }),
-    q({ startDate: { gte: weekAgo, lte: now } }, { startDate: "desc" }),
-    q({ startDate: { gte: monthAgo, lte: now } }, { startDate: "desc" }),
-    q({}, { createdAt: "desc" }),
-    q({}, { updatedAt: "desc" }),
-    q({ OR: [{ status: "UPCOMING" }, { startDate: { gt: now } }] }, { startDate: "asc" }),
+    q(released(startOfDay, tomorrow), { updatedAt: "desc" }),
+    q(released(weekAgo, tomorrow), { popularity: "desc" }),
+    q(released(monthAgo, tomorrow), { popularity: "desc" }),
+    q(playable, { createdAt: "desc" }),
+    q(playable, { updatedAt: "desc" }),
+    q({ OR: [{ status: "UPCOMING" }, { episodes: { some: { releaseDate: { gte: tomorrow } } } }] }, { startDate: "asc" }),
   ]);
   return { today, week, month, recentlyAdded, recentlyUpdated, upcoming };
 }

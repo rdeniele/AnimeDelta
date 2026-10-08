@@ -75,6 +75,8 @@ model Anime {
   episodeCount  Int?
   studio        String?
   startDate     DateTime?
+  /** When episodes were last synced from the provider; lets the sync resume across runs. */
+  episodesSyncedAt DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 

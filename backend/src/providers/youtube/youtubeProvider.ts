@@ -36,6 +36,20 @@ function seasonOf(d: Date): AnimeDTO["season"] {
   return m < 3 ? "WINTER" : m < 6 ? "SPRING" : m < 9 ? "SUMMER" : "FALL";
 }
 
+/** Playlist/video titles on these channels carry bilingual text and channel tags; keep the English part. */
+export function cleanTitle(raw: string): string {
+  const first = raw.split(/[｜|]/)[0];
+  const cleaned = first
+    .replace(/[【[][^】\]]*(ani-?one|muse|asia|limited|free|english|sub|eng)[^】\]]*[】\]]/gi, " ")
+    .replace(/\((?:limited-time|limited)[^)]*\)/gi, " ")
+    .replace(/[《》【】]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned || raw.trim();
+}
+
+const channelLabel = (title: string) => title.replace(/\s*\b(Asia|ENG|Official)\b/g, "").trim() || title;
+
 export const watchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
 
 export class YouTubeMetadataProvider implements MetadataProvider {
@@ -59,8 +73,8 @@ export class YouTubeMetadataProvider implements MetadataProvider {
     const count = p.contentDetails?.itemCount ?? 0;
     return {
       externalId: p.id,
-      title: p.snippet.title,
-      englishTitle: p.snippet.title,
+      title: cleanTitle(p.snippet.title),
+      englishTitle: cleanTitle(p.snippet.title),
       synonyms: [],
       description: p.snippet.description || `Official release from ${channelTitle}.`,
       coverImage: art,
@@ -76,7 +90,7 @@ export class YouTubeMetadataProvider implements MetadataProvider {
       episodeCount: count,
       studio: channelTitle,
       startDate: published,
-      genres: ["Anime"],
+      genres: [channelLabel(channelTitle)],
     };
   }
 
@@ -125,7 +139,7 @@ export class YouTubeMetadataProvider implements MetadataProvider {
         if (!id || it.snippet?.title === "Private video" || it.snippet?.title === "Deleted video") continue;
         items.push({
           id,
-          title: it.snippet.title,
+          title: cleanTitle(it.snippet.title),
           description: it.snippet.description ?? "",
           thumb: best(it.snippet.thumbnails),
           at: it.contentDetails.videoPublishedAt ?? it.snippet.publishedAt ?? null,

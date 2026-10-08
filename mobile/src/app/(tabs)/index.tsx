@@ -46,7 +46,7 @@ export default function Home() {
           if (past !== pastHero) setPastHero(past);
         }}
         contentContainerStyle={{ paddingBottom: 32 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#8b5cf6" progressViewOffset={insets.top} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#e11d48" progressViewOffset={insets.top} />}
       >
         <AnimeHero items={data?.hero ?? []} loading={isLoading} />
         <View className="-mt-1 pt-4">

@@ -6,7 +6,7 @@ import { BottomSheet } from "../common/BottomSheet";
 function Option({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} className="flex-row items-center gap-3 rounded-2xl px-3 py-3.5 active:bg-surface2">
-      <Ionicons name={selected ? "radio-button-on" : "radio-button-off"} size={20} color={selected ? "#8b5cf6" : "#a99fc4"} />
+      <Ionicons name={selected ? "radio-button-on" : "radio-button-off"} size={20} color={selected ? "#e11d48" : "#a79ba8"} />
       <Text className={`text-base ${selected ? "text-primary font-bold" : "text-fg"}`}>{label}</Text>
     </Pressable>
   );

@@ -14,7 +14,7 @@ export function Toast() {
   }, [msg, t]);
   const style = useAnimatedStyle(() => ({ opacity: t.value, transform: [{ translateY: (1 - t.value) * 24 }] }));
   const icon = msg?.kind === "success" ? "checkmark-circle" : msg?.kind === "error" ? "alert-circle" : "information-circle";
-  const color = msg?.kind === "success" ? "#34d399" : msg?.kind === "error" ? "#f43f5e" : "#38bdf8";
+  const color = msg?.kind === "success" ? "#34d399" : msg?.kind === "error" ? "#f43f5e" : "#ff6b81";
   return (
     <Animated.View
       pointerEvents="none"

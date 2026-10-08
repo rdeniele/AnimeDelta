@@ -42,7 +42,7 @@ function Row({ item, onRemove }: { item: ProgressItem; onRemove: () => void }) {
         </View>
       </PressableScale>
       <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${item.anime.title} from history`} hitSlop={10} onPress={onRemove} className="p-2 active:opacity-60">
-        <Ionicons name="close" size={20} color="#a99fc4" />
+        <Ionicons name="close" size={20} color="#a79ba8" />
       </Pressable>
     </View>
   );

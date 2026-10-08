@@ -18,7 +18,7 @@ export function Header({ title, back, right, subtitle }: { title: string; back?:
           onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
           className="bg-surface2 h-10 w-10 items-center justify-center rounded-full active:opacity-70"
         >
-          <Ionicons name="chevron-back" size={22} color="#a99fc4" />
+          <Ionicons name="chevron-back" size={22} color="#a79ba8" />
         </Pressable>
       ) : null}
       <View className="flex-1">

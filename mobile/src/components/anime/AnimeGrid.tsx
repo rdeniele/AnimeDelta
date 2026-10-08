@@ -46,7 +46,7 @@ export function AnimeGrid({
       removeClippedSubviews
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor="#8b5cf6" /> : undefined}
+      refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor="#e11d48" /> : undefined}
       renderItem={({ item }) => <PosterCard anime={item} width={cardWidth} />}
     />
   );

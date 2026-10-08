@@ -37,9 +37,9 @@ export function ListStatusSheet() {
             }}
             className="flex-row items-center gap-3 rounded-2xl px-3 py-3.5 active:bg-surface2"
           >
-            <Ionicons name={ICONS[s]} size={22} color={current === s ? "#8b5cf6" : "#a99fc4"} />
+            <Ionicons name={ICONS[s]} size={22} color={current === s ? "#e11d48" : "#a79ba8"} />
             <Text className={`flex-1 text-base ${current === s ? "text-primary font-bold" : "text-fg"}`}>{LIST_LABELS[s]}</Text>
-            {current === s ? <Ionicons name="checkmark" size={20} color="#8b5cf6" /> : null}
+            {current === s ? <Ionicons name="checkmark" size={20} color="#e11d48" /> : null}
           </Pressable>
         ))}
         {current && anime ? (

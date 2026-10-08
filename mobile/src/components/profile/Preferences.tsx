@@ -46,7 +46,7 @@ export function Preferences() {
         />
       </PrefRow>
       <PrefRow label="Autoplay next episode">
-        <Switch value={p.autoplayNext} onValueChange={(v) => p.set({ autoplayNext: v })} trackColor={{ true: "#8b5cf6" }} accessibilityLabel="Autoplay next episode" />
+        <Switch value={p.autoplayNext} onValueChange={(v) => p.set({ autoplayNext: v })} trackColor={{ true: "#e11d48" }} accessibilityLabel="Autoplay next episode" />
       </PrefRow>
       <PrefRow label="Video Quality">
         <Segmented<QualityPref>

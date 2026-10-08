@@ -59,7 +59,7 @@ export default function RootLayout() {
         >
           <View className="bg-bg flex-1">
             <StatusBar style={scheme === "light" ? "dark" : "light"} />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: scheme === "light" ? "#f7f4ff" : "#0a0612" }, animation: "slide_from_right" }}>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: scheme === "light" ? "#fbf6f7" : "#07050c" }, animation: "slide_from_right" }}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="player/[animeId]/[episodeId]" options={{ animation: "fade", orientation: "all", gestureEnabled: false }} />
             </Stack>

@@ -16,7 +16,7 @@ export default function PlayerScreen() {
   if (q.isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-black">
-        <ActivityIndicator color="#8b5cf6" size="large" />
+        <ActivityIndicator color="#e11d48" size="large" />
       </View>
     );
   }

@@ -24,15 +24,18 @@ export const catalog = Router();
 catalog.get("/home", async (req, res) => {
   const take = (orderBy: object, where: object = {}, n = 15) =>
     db.anime.findMany({ where, select: cardSelect, orderBy, take: n }).then((r) => r.map(toCard));
+  // "Airing" = officially airing OR got a new episode in the last 30 days (video channels never set a status).
+  const recent = { OR: [{ status: "AIRING" as const }, { episodes: { some: { releaseDate: { gte: new Date(Date.now() - 30 * 24 * 3600 * 1000), lte: new Date() } } } }] };
+  const playable = { episodes: { some: {} } };
   const [hero, recentlyAdded, trending, popularSeason, airing, fresh, recentlyUpdated, latest, recommended, cont, genres] =
     await Promise.all([
-      take({ rating: { sort: "desc", nulls: "last" } }, { status: "AIRING", bannerImage: { not: null } }, 5),
-      take({ createdAt: "desc" }),
-      take({ popularity: "desc" }),
-      take({ popularity: "desc" }, { status: "AIRING" }),
-      take({ startDate: "desc" }, { status: "AIRING" }),
-      take({ startDate: { sort: "desc", nulls: "last" } }, { status: { in: ["AIRING", "UPCOMING"] } }),
-      take({ updatedAt: "desc" }),
+      take({ popularity: "desc" }, { bannerImage: { not: null }, ...playable }, 5),
+      take({ createdAt: "desc" }, playable),
+      take({ popularity: "desc" }, playable),
+      take({ popularity: "desc" }, recent),
+      take({ startDate: "desc" }, recent),
+      take({ startDate: { sort: "desc", nulls: "last" } }, playable),
+      take({ updatedAt: "desc" }, playable),
       latestEpisodes(15),
       recommender.recommend(req.userId, 15),
       req.userId ? continueWatching(req.userId) : Promise.resolve([]),

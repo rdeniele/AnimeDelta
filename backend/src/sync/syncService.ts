@@ -102,17 +102,23 @@ export async function syncSeasons(provider: MetadataProvider = getMetadataProvid
   return stats;
 }
 
-/** Add new episodes and refresh release dates. Skips finished anime that already have all episodes. */
+/**
+ * Add new episodes and refresh release dates. Resumable: anime are processed least-recently-synced
+ * first and stamped when done, so a time-boxed run (serverless cron) continues where it stopped.
+ * Finished anime are re-checked weekly, others every 12 hours.
+ */
 export async function syncEpisodes(provider: MetadataProvider = getMetadataProvider(), opts?: SyncOptions): Promise<SyncStats> {
   const stats = emptyStats();
   const list = await db.anime.findMany({
     where: { externalId: { not: null } },
-    select: { id: true, externalId: true, status: true, _count: { select: { episodes: true } }, episodeCount: true },
+    orderBy: [{ episodesSyncedAt: { sort: "asc", nulls: "first" } }, { popularity: "desc" }],
+    select: { id: true, externalId: true, status: true, episodesSyncedAt: true },
   });
+  const now = Date.now();
   for (const a of list) {
     if (expired(opts)) break;
-    const complete = a.status === "FINISHED" && a.episodeCount != null && a._count.episodes >= a.episodeCount;
-    if (complete) continue;
+    const ttl = a.status === "FINISHED" ? 7 * 24 * 3600 * 1000 : 12 * 3600 * 1000;
+    if (a.episodesSyncedAt && now - a.episodesSyncedAt.getTime() < ttl) continue;
     try {
       const seasons = await db.season.findMany({ where: { animeId: a.id } });
       const bySeason = new Map(seasons.map((s) => [s.number, s.id]));
@@ -150,11 +156,25 @@ export async function syncEpisodes(provider: MetadataProvider = getMetadataProvi
           if (!has) await db.mediaSource.create({ data: { episodeId, url: e.mediaUrl, quality: "auto", mimeType: "video/youtube" } });
         }
       }
+      await db.anime.update({ where: { id: a.id }, data: { episodesSyncedAt: new Date() } });
     } catch (err) {
       stats.errors.push(`syncEpisodes ${a.externalId}: ${(err as Error).message}`);
     }
   }
   return stats;
+}
+
+/** Removes provider-imported anime that were synced but have no playable episodes (e.g. embedding disabled). */
+export async function pruneEmpty(): Promise<number> {
+  const r = await db.anime.deleteMany({
+    where: {
+      externalId: { not: null },
+      NOT: { externalId: { startsWith: "lib:" } },
+      episodesSyncedAt: { not: null },
+      episodes: { none: {} },
+    },
+  });
+  return r.count;
 }
 
 /** Refresh ratings, genres, status and other metadata for anime that are still changing. */
@@ -193,6 +213,7 @@ export async function runFullSync(provider: MetadataProvider = getMetadataProvid
       total.errors.push(`${step.name}: ${(e as Error).message}`);
     }
   }
+  await pruneEmpty().catch((e) => total.errors.push(`pruneEmpty: ${(e as Error).message}`));
   await db.syncRun.update({
     where: { id: run.id },
     data: { ...total, errors: total.errors.slice(0, 50), finishedAt: new Date() },

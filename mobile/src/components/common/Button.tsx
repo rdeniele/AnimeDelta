@@ -85,7 +85,7 @@ export function Chip({
         active ? "border-primary bg-primary" : "border-line bg-surface"
       }`}
     >
-      {icon ? <Ionicons name={icon} size={14} color={active ? "#fff" : "#a99fc4"} /> : null}
+      {icon ? <Ionicons name={icon} size={14} color={active ? "#fff" : "#a79ba8"} /> : null}
       <Text className={`text-sm font-medium ${active ? "text-white" : "text-fg"}`}>{label}</Text>
       {onRemove ? <Ionicons name="close" size={14} color="#fff" /> : null}
     </Pressable>

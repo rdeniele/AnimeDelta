@@ -25,7 +25,7 @@ export function Skeleton({ width = "100%", height = 16, radius = 12, style }: {
     >
       <Animated.View style={[{ width: "100%", height: "100%" }, anim]}>
         <LinearGradient
-          colors={["transparent", "rgba(139,92,246,0.14)", "transparent"]}
+          colors={["transparent", "rgba(225,29,72,0.14)", "transparent"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{ flex: 1 }}

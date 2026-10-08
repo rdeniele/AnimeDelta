@@ -34,14 +34,14 @@ export default function Settings() {
         <Title>Notifications</Title>
         <View className="bg-surface border-line rounded-3xl border px-4">
           <PrefRow label="New Episodes">
-            <Switch value={p.notifyEpisodes} onValueChange={(v) => update({ notifyEpisodes: v })} trackColor={{ true: "#8b5cf6" }} accessibilityLabel="New episodes notifications" />
+            <Switch value={p.notifyEpisodes} onValueChange={(v) => update({ notifyEpisodes: v })} trackColor={{ true: "#e11d48" }} accessibilityLabel="New episodes notifications" />
           </PrefRow>
           <PrefRow label="New Anime">
-            <Switch value={p.notifyNewAnime} onValueChange={(v) => update({ notifyNewAnime: v })} trackColor={{ true: "#8b5cf6" }} accessibilityLabel="New anime notifications" />
+            <Switch value={p.notifyNewAnime} onValueChange={(v) => update({ notifyNewAnime: v })} trackColor={{ true: "#e11d48" }} accessibilityLabel="New anime notifications" />
           </PrefRow>
           <View className="flex-row items-center justify-between py-3">
             <Text className="text-fg flex-1 text-[15px]">Recommendations</Text>
-            <Switch value={p.notifyRecommendations} onValueChange={(v) => update({ notifyRecommendations: v })} trackColor={{ true: "#8b5cf6" }} accessibilityLabel="Recommendation notifications" />
+            <Switch value={p.notifyRecommendations} onValueChange={(v) => update({ notifyRecommendations: v })} trackColor={{ true: "#e11d48" }} accessibilityLabel="Recommendation notifications" />
           </View>
         </View>
         <Text className="text-muted mt-2 px-1 text-xs">We only notify for anime on your list, at most once per release.</Text>
@@ -54,7 +54,7 @@ export default function Settings() {
           ].map((r, i) => (
             <Pressable key={r.to} accessibilityRole="link" onPress={() => router.push(r.to)} className={`flex-row items-center justify-between py-3.5 ${i === 0 ? "border-line border-b" : ""}`}>
               <Text className="text-fg text-[15px]">{r.label}</Text>
-              <Ionicons name="chevron-forward" size={18} color="#a99fc4" />
+              <Ionicons name="chevron-forward" size={18} color="#a79ba8" />
             </Pressable>
           ))}
         </View>
