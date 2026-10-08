@@ -90,7 +90,33 @@
       that episode's video source — only link media you own or are allowed to use (your own files/CDN,
       or a YouTube video the channel allows to be embedded).
     </p>
+    <label>Paste a YouTube playlist link to auto-fill everything below</label>
     <div class="row">
+      <div style="flex:3;">
+        <input id="yt-playlist-url" placeholder="https://www.youtube.com/playlist?list=..." />
+      </div>
+      <div style="flex:1; min-width:150px;">
+        <button type="button" id="fetch-playlist" class="secondary" style="margin-top:0; width:100%;">Fetch episodes</button>
+      </div>
+    </div>
+    <div class="status" id="playlist-status"></div>
+
+    <label>Or import from a URL on your own site/server</label>
+    <p class="hint" style="margin-bottom:8px;">
+      That URL should return either JSON — an array of episode links, or
+      <code>{ title?, episodes: [...] }</code> — or plain text with one video link per line.
+    </p>
+    <div class="row">
+      <div style="flex:3;">
+        <input id="generic-import-url" placeholder="https://your-site.example/anime/my-series/episodes.json" />
+      </div>
+      <div style="flex:1; min-width:150px;">
+        <button type="button" id="fetch-import-url" class="secondary" style="margin-top:0; width:100%;">Fetch episodes</button>
+      </div>
+    </div>
+    <div class="status" id="import-url-status"></div>
+
+    <div class="row" style="margin-top:16px;">
       <div>
         <label>Title *</label>
         <input id="s-title" placeholder="My First Series" />

@@ -83,6 +83,64 @@ function addEpisodeRow(url = "", title = "") {
 addEpisodeRow();
 document.getElementById("add-episode").addEventListener("click", () => addEpisodeRow());
 
+// ---------- Fetch episodes from a link (YouTube playlist, or your own URL) ----------
+
+/** Shared by both importers below: drops a {title, cover, studio, episodes} preview into the
+ * "Add a series" form without overwriting anything the admin already typed. */
+function applySeriesPreview(result, status) {
+  const titleEl = document.getElementById("s-title");
+  if (!titleEl.value.trim() && result.title) titleEl.value = result.title;
+  const coverEl = document.getElementById("s-cover");
+  if (!coverEl.value.trim() && result.cover) coverEl.value = result.cover;
+  const bannerEl = document.getElementById("s-banner");
+  if (!bannerEl.value.trim() && result.cover) bannerEl.value = result.cover;
+  const studioEl = document.getElementById("s-studio");
+  if (!studioEl.value.trim() && result.studio) studioEl.value = result.studio;
+
+  episodeList.innerHTML = "";
+  for (const ep of result.episodes) addEpisodeRow(ep.url, ep.title);
+  if (!episodeList.children.length) addEpisodeRow();
+
+  const label = result.title ? `"${result.title}"` : "that link";
+  if (result.episodes.length === 0) {
+    setStatus(status, `No usable episodes found at ${label}.`, false);
+  } else {
+    setStatus(
+      status,
+      `Loaded ${result.episodes.length} episode${result.episodes.length === 1 ? "" : "s"} from ${label}. Review below (title/episodes if blank), then Save series.`,
+      true,
+    );
+  }
+}
+
+document.getElementById("fetch-playlist").addEventListener("click", async () => {
+  const status = document.getElementById("playlist-status");
+  const url = document.getElementById("yt-playlist-url").value.trim();
+  if (!url) return setStatus(status, "Paste a playlist link first.", false);
+
+  setStatus(status, "Fetching playlist from YouTube...", undefined);
+  try {
+    const result = await api("/admin/youtube-playlist", { method: "POST", admin: true, body: { url } });
+    applySeriesPreview(result, status);
+  } catch (e) {
+    setStatus(status, e.message, false);
+  }
+});
+
+document.getElementById("fetch-import-url").addEventListener("click", async () => {
+  const status = document.getElementById("import-url-status");
+  const url = document.getElementById("generic-import-url").value.trim();
+  if (!url) return setStatus(status, "Paste a URL first.", false);
+
+  setStatus(status, "Fetching episodes...", undefined);
+  try {
+    const result = await api("/admin/import-url", { method: "POST", admin: true, body: { url } });
+    applySeriesPreview(result, status);
+  } catch (e) {
+    setStatus(status, e.message, false);
+  }
+});
+
 document.getElementById("submit-series").addEventListener("click", async () => {
   const seriesStatus = document.getElementById("series-status");
   const title = document.getElementById("s-title").value.trim();

@@ -1,5 +1,6 @@
 import { env } from "../../lib/env.js";
 import type { AnimeDTO, EpisodeDTO, MetadataProvider, SeasonDTO } from "../types.js";
+import type { SeriesPreview } from "../../library/preview.js";
 
 /**
  * Metadata adapter for official YouTube channels, via the YouTube Data API v3.
@@ -62,6 +63,89 @@ export function channelLabel(title: string): string {
 }
 
 export const watchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`;
+
+/** Pulls a playlist ID out of a playlist URL, a video URL with `&list=`, or a bare ID pasted directly. */
+export function extractPlaylistId(input: string): string | null {
+  const trimmed = input.trim();
+  try {
+    const u = new URL(trimmed);
+    return u.searchParams.get("list");
+  } catch {
+    return /^[\w-]{10,40}$/.test(trimmed) ? trimmed : null;
+  }
+}
+
+/** Every embeddable video in a playlist, in playlist order. Shared by channel sync and the
+ * admin "paste a playlist link" import — same API calls, same embeddable filter either way. */
+export async function fetchPlaylistEpisodes(playlistId: string): Promise<EpisodeDTO[]> {
+  const items: { id: string; title: string; description: string; thumb: string | null; at: string | null }[] = [];
+  let token: string | undefined;
+  for (let i = 0; i < 4; i++) {
+    const r = await yt("playlistItems", {
+      part: "snippet,contentDetails",
+      playlistId,
+      maxResults: "50",
+      ...(token ? { pageToken: token } : {}),
+    });
+    for (const it of r.items ?? []) {
+      const id = it.contentDetails?.videoId;
+      if (!id || it.snippet?.title === "Private video" || it.snippet?.title === "Deleted video") continue;
+      items.push({
+        id,
+        title: cleanTitle(it.snippet.title),
+        description: it.snippet.description ?? "",
+        thumb: best(it.snippet.thumbnails),
+        at: it.contentDetails.videoPublishedAt ?? it.snippet.publishedAt ?? null,
+      });
+    }
+    token = r.nextPageToken;
+    if (!token) break;
+  }
+  // Keep only videos the owner allows to embed, and read their durations.
+  const info = new Map<string, { minutes: number | null; embeddable: boolean }>();
+  for (let i = 0; i < items.length; i += 50) {
+    const ids = items.slice(i, i + 50).map((x) => x.id).join(",");
+    const r = await yt("videos", { part: "contentDetails,status", id: ids });
+    for (const v of r.items ?? []) {
+      info.set(v.id, { minutes: isoMinutes(v.contentDetails?.duration), embeddable: !!v.status?.embeddable });
+    }
+  }
+  return items
+    .filter((x) => info.get(x.id)?.embeddable)
+    .map((x, n) => ({
+      seasonNumber: 1,
+      episodeNumber: n + 1,
+      title: x.title,
+      description: x.description.slice(0, 600),
+      thumbnail: x.thumb,
+      releaseDate: x.at ? new Date(x.at) : null,
+      duration: info.get(x.id)?.minutes ?? null,
+      mediaUrl: watchUrl(x.id),
+    }));
+}
+
+/** Looks up a playlist by ID and fetches all its (embeddable) episodes, for the admin's
+ * "paste a playlist link" import — any public playlist, not just the configured channels.
+ * Shaped as {url, title, ...} (not EpisodeDTO's `mediaUrl`) to match what the "Add a series"
+ * form's episode rows and the library-series import both expect. */
+export async function fetchPlaylistPreview(playlistId: string): Promise<SeriesPreview> {
+  const pl = await yt("playlists", { part: "snippet,contentDetails", id: playlistId });
+  const p = pl.items?.[0];
+  if (!p) throw new Error("Playlist not found. It may be private, deleted, or the link may be wrong.");
+  const episodes = await fetchPlaylistEpisodes(playlistId);
+  return {
+    title: cleanTitle(p.snippet.title),
+    cover: best(p.snippet.thumbnails),
+    studio: p.snippet.channelTitle ?? null,
+    episodes: episodes.map((e) => ({
+      url: e.mediaUrl!,
+      title: e.title,
+      description: e.description,
+      thumbnail: e.thumbnail ?? null,
+      duration: e.duration ?? null,
+    })),
+  };
+}
 
 export class YouTubeMetadataProvider implements MetadataProvider {
   readonly name = "youtube";
@@ -136,50 +220,7 @@ export class YouTubeMetadataProvider implements MetadataProvider {
     return (await this.load()).find((a) => a.externalId === id) ?? null;
   }
   async getEpisodes(playlistId: string): Promise<EpisodeDTO[]> {
-    const items: { id: string; title: string; description: string; thumb: string | null; at: string | null }[] = [];
-    let token: string | undefined;
-    for (let i = 0; i < 4; i++) {
-      const r = await yt("playlistItems", {
-        part: "snippet,contentDetails",
-        playlistId,
-        maxResults: "50",
-        ...(token ? { pageToken: token } : {}),
-      });
-      for (const it of r.items ?? []) {
-        const id = it.contentDetails?.videoId;
-        if (!id || it.snippet?.title === "Private video" || it.snippet?.title === "Deleted video") continue;
-        items.push({
-          id,
-          title: cleanTitle(it.snippet.title),
-          description: it.snippet.description ?? "",
-          thumb: best(it.snippet.thumbnails),
-          at: it.contentDetails.videoPublishedAt ?? it.snippet.publishedAt ?? null,
-        });
-      }
-      token = r.nextPageToken;
-      if (!token) break;
-    }
-    // Keep only videos the owner allows to embed, and read their durations.
-    const info = new Map<string, { minutes: number | null; embeddable: boolean }>();
-    for (let i = 0; i < items.length; i += 50) {
-      const ids = items.slice(i, i + 50).map((x) => x.id).join(",");
-      const r = await yt("videos", { part: "contentDetails,status", id: ids });
-      for (const v of r.items ?? []) {
-        info.set(v.id, { minutes: isoMinutes(v.contentDetails?.duration), embeddable: !!v.status?.embeddable });
-      }
-    }
-    return items
-      .filter((x) => info.get(x.id)?.embeddable)
-      .map((x, n) => ({
-        seasonNumber: 1,
-        episodeNumber: n + 1,
-        title: x.title,
-        description: x.description.slice(0, 600),
-        thumbnail: x.thumb,
-        releaseDate: x.at ? new Date(x.at) : null,
-        duration: info.get(x.id)?.minutes ?? null,
-        mediaUrl: watchUrl(x.id),
-      }));
+    return fetchPlaylistEpisodes(playlistId);
   }
   async getSeasons(): Promise<SeasonDTO[]> {
     return [{ number: 1, title: "Season 1" }];

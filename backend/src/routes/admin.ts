@@ -5,6 +5,10 @@ import { HttpError, idParam, parse, requireAdmin } from "../lib/http.js";
 import { env } from "../lib/env.js";
 import { runFullSync } from "../sync/syncService.js";
 import { importLibrary, series } from "../library/importLibrary.js";
+import { clearEvents, getEvents } from "../debug/inspector.js";
+import { cache } from "../cache/cacheManager.js";
+import { extractPlaylistId, fetchPlaylistPreview } from "../providers/youtube/youtubeProvider.js";
+import { fetchSeriesPreviewFromUrl } from "../library/importFromUrl.js";
 
 export const admin = Router();
 admin.use(requireAdmin);
@@ -41,6 +45,39 @@ admin.post("/library-series", async (req, res) => {
   res.status(201).json(await importLibrary({ series: [body] }));
 });
 
+/** Given any YouTube playlist link (or a video link that has `&list=...`), fetch the playlist's
+ * title/thumbnail and every embeddable video in it, shaped to drop straight into the "Add a
+ * series" form — so the admin pastes one link instead of adding each episode by hand. Nothing
+ * is saved here; the admin still reviews and hits "Save series" (POST /library-series). */
+admin.post("/youtube-playlist", async (req, res) => {
+  const { url } = parse(z.object({ url: z.string().min(1).max(2000) }), req.body);
+  const playlistId = extractPlaylistId(url);
+  if (!playlistId) {
+    throw new HttpError(
+      400,
+      "Couldn't find a playlist in that link. Paste a YouTube playlist URL (youtube.com/playlist?list=...) or a video URL that includes &list=...",
+    );
+  }
+  try {
+    const preview = await fetchPlaylistPreview(playlistId);
+    res.json(preview);
+  } catch (e) {
+    throw new HttpError(502, e instanceof Error ? e.message : "Failed to fetch that playlist from YouTube.");
+  }
+});
+
+/** Generic version of the above for a URL you control: your own server returns JSON (an episode
+ * list, or { title?, episodes: [...] }) or a plain-text list of video links, one per line, and
+ * this fetches and shapes it the same way the YouTube playlist import does. */
+admin.post("/import-url", async (req, res) => {
+  const { url } = parse(z.object({ url: z.string().min(1).max(2000) }), req.body);
+  try {
+    res.json(await fetchSeriesPreviewFromUrl(url));
+  } catch (e) {
+    throw new HttpError(502, e instanceof Error ? e.message : "Failed to fetch that URL.");
+  }
+});
+
 /** Register a media source you have the rights to use for an episode. */
 admin.post("/media-sources", async (req, res) => {
   const body = parse(
@@ -54,6 +91,16 @@ admin.post("/media-sources", async (req, res) => {
     req.body,
   );
   res.status(201).json(await db.mediaSource.create({ data: body }));
+});
+
+/** Developer/debug view of recent provider activity (Section 8). Secrets are redacted before
+ * events are ever recorded, so nothing extra needs to happen here. */
+admin.get("/debug/events", async (_req, res) => {
+  res.json({ events: getEvents(), cacheSize: cache.size() });
+});
+admin.post("/debug/events/clear", async (_req, res) => {
+  clearEvents();
+  res.status(204).end();
 });
 
 admin.post("/subtitles", async (req, res) => {
