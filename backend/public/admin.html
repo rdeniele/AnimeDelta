@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AnimeDelta Admin</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0e0b0c; color: #f1e9ea;
+  }
+  header {
+    padding: 20px 24px; border-bottom: 1px solid #2a1f21;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  h1 { margin: 0; font-size: 20px; }
+  h1 span { color: #e23b4e; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+  section {
+    background: #171213; border: 1px solid #2a1f21; border-radius: 10px; padding: 18px 20px;
+  }
+  section h2 { margin: 0 0 4px; font-size: 16px; }
+  section p.hint { margin: 0 0 14px; color: #a68d90; font-size: 13px; }
+  label { display: block; font-size: 12px; color: #c9b4b7; margin: 10px 0 4px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #3a2a2d;
+    background: #0e0b0c; color: #f1e9ea; font-size: 14px; font-family: inherit;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  button {
+    background: #e23b4e; color: #fff; border: none; border-radius: 6px; padding: 9px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px;
+  }
+  button.secondary { background: #2a1f21; }
+  button.small { padding: 5px 10px; font-size: 12px; margin-top: 0; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .episode-row {
+    display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px;
+  }
+  .episode-row input { flex: 1; }
+  .status { margin-top: 10px; font-size: 13px; white-space: pre-wrap; }
+  .status.ok { color: #6ee7a8; }
+  .status.err { color: #ff7a85; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; }
+  .stat { background: #0e0b0c; border: 1px solid #2a1f21; border-radius: 8px; padding: 10px; text-align: center; }
+  .stat b { display: block; font-size: 20px; }
+  .stat small { color: #a68d90; }
+  .results { margin-top: 10px; display: grid; gap: 6px; max-height: 240px; overflow: auto; }
+  .result-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: #0e0b0c; border: 1px solid #2a1f21; border-radius: 6px; padding: 8px 10px; cursor: pointer;
+  }
+  .result-item:hover { border-color: #e23b4e; }
+  .ep-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #2a1f21; }
+  .ep-item.selected { color: #e23b4e; }
+  .muted { color: #a68d90; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Anime<span>Delta</span> Admin</h1>
+  <div class="row" style="min-width:280px;">
+    <div>
+      <label for="token" style="margin-top:0;">Admin token (X-Admin-Token)</label>
+      <input id="token" type="password" placeholder="paste ADMIN_TOKEN" autocomplete="off" />
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="stats-section">
+    <h2>Status</h2>
+    <p class="hint">Live counts from the API. Requires a valid admin token.</p>
+    <div class="row">
+      <button id="refresh-stats">Refresh</button>
+      <button id="run-sync" class="secondary">Run full sync</button>
+    </div>
+    <div class="stat-grid" id="stat-grid"></div>
+    <div class="status" id="stats-status"></div>
+  </section>
+
+  <section>
+    <h2>Add a series to the animelist</h2>
+    <p class="hint">
+      Creates (or updates, if the title matches) a series with its episode list. Each episode URL becomes
+      that episode's video source — only link media you own or are allowed to use (your own files/CDN,
+      or a YouTube video the channel allows to be embedded).
+    </p>
+    <div class="row">
+      <div>
+        <label>Title *</label>
+        <input id="s-title" placeholder="My First Series" />
+      </div>
+      <div>
+        <label>Native title</label>
+        <input id="s-native" placeholder="optional" />
+      </div>
+    </div>
+    <label>Description</label>
+    <textarea id="s-desc" placeholder="Shown on the detail page"></textarea>
+    <div class="row">
+      <div>
+        <label>Year</label>
+        <input id="s-year" type="number" min="1950" max="2100" />
+      </div>
+      <div>
+        <label>Season</label>
+        <select id="s-season">
+          <option value="">(none)</option>
+          <option>WINTER</option><option>SPRING</option><option>SUMMER</option><option>FALL</option>
+        </select>
+      </div>
+      <div>
+        <label>Type</label>
+        <select id="s-type">
+          <option>TV</option><option>MOVIE</option><option>OVA</option><option>ONA</option><option>SPECIAL</option>
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="s-status">
+          <option>FINISHED</option><option>AIRING</option><option>UPCOMING</option><option>CANCELLED</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Studio / channel</label>
+        <input id="s-studio" placeholder="optional" />
+      </div>
+      <div>
+        <label>Genres (comma separated)</label>
+        <input id="s-genres" placeholder="Action, Fantasy" />
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Cover image URL</label>
+        <input id="s-cover" placeholder="https://.../poster.jpg" />
+      </div>
+      <div>
+        <label>Banner image URL</label>
+        <input id="s-banner" placeholder="https://.../banner.jpg" />
+      </div>
+    </div>
+
+    <label style="margin-top:16px;">Episodes (video source URL, in order) *</label>
+    <div id="episode-list"></div>
+    <button id="add-episode" class="secondary small" type="button">+ Add episode</button>
+
+    <div>
+      <button id="submit-series">Save series</button>
+    </div>
+    <div class="status" id="series-status"></div>
+  </section>
+
+  <section>
+    <h2>Attach a source to an existing episode</h2>
+    <p class="hint">Find a series already in the list, pick an episode, then add a video source and/or subtitle track to it.</p>
+
+    <label>Search anime</label>
+    <input id="search-q" placeholder="Start typing a title..." />
+    <div class="results" id="search-results"></div>
+
+    <div id="episode-picker" style="display:none; margin-top:14px;">
+      <label>Episode</label>
+      <div class="results" id="episode-results"></div>
+    </div>
+
+    <div id="source-forms" style="display:none; margin-top:16px;">
+      <p class="muted" id="selected-episode-label"></p>
+
+      <div class="row">
+        <div>
+          <label>Video URL *</label>
+          <input id="ms-url" placeholder="https://... .mp4 / .m3u8 / youtube link" />
+        </div>
+        <div>
+          <label>Quality</label>
+          <input id="ms-quality" value="auto" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>MIME type</label>
+          <input id="ms-mime" placeholder="optional, e.g. video/mp4" />
+        </div>
+        <div>
+          <label>Note</label>
+          <input id="ms-note" placeholder="optional" />
+        </div>
+      </div>
+      <button id="submit-source">Add video source</button>
+      <div class="status" id="source-status"></div>
+
+      <div class="row" style="margin-top:16px;">
+        <div>
+          <label>Subtitle language code</label>
+          <input id="sub-lang" placeholder="en" maxlength="10" />
+        </div>
+        <div>
+          <label>Subtitle label</label>
+          <input id="sub-label" placeholder="English" />
+        </div>
+      </div>
+      <label>Subtitle URL (.vtt)</label>
+      <input id="sub-url" placeholder="https://.../episode.en.vtt" />
+      <button id="submit-subtitle" class="secondary">Add subtitle</button>
+      <div class="status" id="subtitle-status"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/admin.js"></script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { db } from "../lib/db.js";
 import { HttpError, idParam, parse, requireAdmin } from "../lib/http.js";
 import { env } from "../lib/env.js";
 import { runFullSync } from "../sync/syncService.js";
+import { importLibrary, series } from "../library/importLibrary.js";
 
 export const admin = Router();
 admin.use(requireAdmin);
@@ -32,6 +33,12 @@ admin.post("/sync", async (_req, res) => {
   syncing = true;
   runFullSync().finally(() => (syncing = false));
   res.status(202).json({ started: true });
+});
+
+/** Create or update one series with its episode sources (same shape as a catalog/library.json entry). */
+admin.post("/library-series", async (req, res) => {
+  const body = parse(series, req.body);
+  res.status(201).json(await importLibrary({ series: [body] }));
 });
 
 /** Register a media source you have the rights to use for an episode. */

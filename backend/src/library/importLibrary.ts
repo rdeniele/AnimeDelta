@@ -21,7 +21,7 @@ const episode = z.union([
   }),
 ]);
 
-const series = z.object({
+export const series = z.object({
   title: z.string().min(1).max(200),
   nativeTitle: z.string().max(200).optional(),
   description: z.string().max(4000).default(""),

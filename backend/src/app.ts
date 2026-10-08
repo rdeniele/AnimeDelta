@@ -16,6 +16,7 @@ export function createApp() {
   app.set("trust proxy", 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors()); // native apps send no Origin; tighten if a web client is added
+  app.use(express.static("public")); // admin.html etc.; Vercel also serves /public directly
   app.use(express.json({ limit: "20kb" }));
 
   app.use(
